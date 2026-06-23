@@ -207,14 +207,11 @@ function removeLeagueComingSoon(skipRerender) {
   $$('.league-coming-soon-overlay').forEach(function(el) {
     el.remove();
   });
-  // 切换回世界杯时重新渲染当前页面内容
+  // 切换回世界杯时重新渲染所有页面内容
   if (!skipRerender) {
-    var activeTab = document.querySelector('.tab.active');
-    if (activeTab) {
-      var tabName = activeTab.dataset.tab;
-      if (tabName === 'event') renderEventPage();
-      if (tabName === 'teams') renderTeamsPage();
-    }
+    renderEventPage();
+    renderTeamsPage();
+    // 预测页面会在切换tab时自动渲染
   }
 }
 
@@ -1356,19 +1353,10 @@ function showRefreshIndicator(text) {
 var mengchaoSubView = 'standings'; // standings | schedule | scorers
 
 function renderMengchaoPage() {
-  var activeTab = document.querySelector('.tab.active');
-  if (!activeTab) return;
-  var tabName = activeTab.dataset.tab;
-
-  if (tabName === 'event') {
-    renderMengchaoEventPage();
-  } else if (tabName === 'teams') {
-    renderMengchaoTeamsPage();
-  } else if (tabName === 'predict') {
-    renderMengchaoPredictPage();
-  } else if (tabName === 'chat') {
-    // chat 保持不变
-  }
+  // 渲染所有蒙超页面内容（不仅是当前活动tab），确保切换tab时不会显示世界杯数据
+  renderMengchaoEventPage();
+  renderMengchaoTeamsPage();
+  renderMengchaoPredictPage();
 }
 
 function renderMengchaoEventPage() {
@@ -1402,7 +1390,7 @@ function renderMengchaoStandings() {
   var html = '';
   html += '<div class="mengchao-standings-wrap">';
   html += '<div class="mengchao-section-title">2026 蒙超联赛积分榜</div>';
-  html += '<div class="mengchao-update-time">更新至第6轮 · 2026-06-21</div>';
+  html += '<div class="mengchao-update-time">更新至第6轮 · 2026-06-22</div>';
   html += '<div class="mengchao-table-container"><table class="mengchao-table">';
   html += '<thead><tr><th>排名</th><th>球队</th><th>场</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>积分</th></tr></thead>';
   html += '<tbody>';
@@ -1525,7 +1513,7 @@ function renderMengchaoScorers() {
 }
 
 function renderMengchaoTeamsPage() {
-  var content = $('#teams-content');
+  var content = $('#page-teams');
   if (!content) return;
 
   var html = '';
