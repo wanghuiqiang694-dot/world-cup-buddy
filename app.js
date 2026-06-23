@@ -101,12 +101,16 @@ $$('.tab').forEach(tab => {
     tab.classList.add('active');
     const target = $(`#page-${tab.dataset.tab}`);
     if (target) target.classList.add('active');
-    if (tab.dataset.tab === 'event') renderEventPage();
-    if (tab.dataset.tab === 'teams') renderTeamsPage();
-    // 如果当前不是世界杯联赛，在新 tab 页面上也显示覆盖层
-    if (currentLeague !== 'worldcup') {
-      var config = LEAGUE_CONFIG[currentLeague];
-      showLeagueComingSoon(currentLeague, config);
+    if (currentLeague === 'mengchao') {
+      renderMengchaoPage();
+    } else {
+      if (tab.dataset.tab === 'event') renderEventPage();
+      if (tab.dataset.tab === 'teams') renderTeamsPage();
+      // 如果当前不是世界杯联赛，在新 tab 页面上也显示覆盖层
+      if (currentLeague !== 'worldcup') {
+        var config = LEAGUE_CONFIG[currentLeague];
+        showLeagueComingSoon(currentLeague, config);
+      }
     }
   });
 });
@@ -141,6 +145,7 @@ var currentLeague = 'worldcup';
 
 var LEAGUE_CONFIG = {
   worldcup: { name: '2026 世界杯', subtitle: '美加墨世界杯 · 48队 · 12组 · 104场' },
+  mengchao: { name: '蒙超', subtitle: '2026 内蒙古足球超级联赛 · 12队 · 11轮' },
   champions: { name: '欧冠联赛', subtitle: '2025-26 赛季 · 欧洲冠军联赛' },
   premier: { name: '英超', subtitle: '2025-26 赛季 · 英格兰超级联赛' },
   laliga: { name: '西甲', subtitle: '2025-26 赛季 · 西班牙甲级联赛' },
@@ -161,6 +166,11 @@ function switchLeague(league) {
     // 切换回世界杯：移除覆盖层，恢复页面内容
     updateHeaderForLeague(config);
     removeLeagueComingSoon();
+  } else if (league === 'mengchao') {
+    // 蒙超：使用真实数据渲染
+    updateHeaderForLeague(config);
+    removeLeagueComingSoon();
+    renderMengchaoPage();
   } else {
     // 其他联赛 - 显示即将开放覆盖层
     updateHeaderForLeague(config);
@@ -211,6 +221,7 @@ function removeLeagueComingSoon(skipRerender) {
 function getLeagueIcon(league) {
   var icons = {
     worldcup: '🏆',
+    mengchao: '🐎',
     champions: '🇪🇺',
     premier: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
     laliga: '🇪🇸',
@@ -224,9 +235,11 @@ function getLeagueIcon(league) {
 // ========== 深色/浅色模式切换 ==========
 function toggleDarkMode() {
   var body = document.body;
-  var isDark = body.classList.toggle('light-mode');
+  var isLight = body.classList.toggle('light-mode');
   var text = $('#dark-mode-text');
-  if (text) text.textContent = isDark ? '浅色模式' : '深色模式';
+  if (text) text.textContent = isLight ? '浅色模式' : '深色模式';
+  var icon = document.querySelector('#dark-mode-text') ? document.querySelector('#dark-mode-text').previousElementSibling : null;
+  if (icon) icon.textContent = isLight ? '☀️' : '🌙';
   closeSidebar();
 }
 
@@ -1337,4 +1350,343 @@ function showRefreshIndicator(text) {
   indicator.textContent = text;
   indicator.style.opacity = '1';
   setTimeout(function() { indicator.style.opacity = '0'; }, 3000);
+}
+
+// ========== 蒙超联赛渲染 ==========
+var mengchaoSubView = 'standings'; // standings | schedule | scorers
+
+function renderMengchaoPage() {
+  var activeTab = document.querySelector('.tab.active');
+  if (!activeTab) return;
+  var tabName = activeTab.dataset.tab;
+
+  if (tabName === 'event') {
+    renderMengchaoEventPage();
+  } else if (tabName === 'teams') {
+    renderMengchaoTeamsPage();
+  } else if (tabName === 'predict') {
+    renderMengchaoPredictPage();
+  } else if (tabName === 'chat') {
+    // chat 保持不变
+  }
+}
+
+function renderMengchaoEventPage() {
+  var content = $('#event-content');
+  if (!content) return;
+
+  var html = '';
+  html += '<div class="mengchao-sub-nav">';
+  html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'standings' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'standings\')">积分榜</a>';
+  html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'schedule' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'schedule\')">赛程</a>';
+  html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'scorers' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'scorers\')">射手榜</a>';
+  html += '</div>';
+
+  if (mengchaoSubView === 'standings') {
+    html += renderMengchaoStandings();
+  } else if (mengchaoSubView === 'schedule') {
+    html += renderMengchaoSchedule();
+  } else {
+    html += renderMengchaoScorers();
+  }
+
+  content.innerHTML = html;
+}
+
+function switchMengchaoSubView(view) {
+  mengchaoSubView = view;
+  renderMengchaoEventPage();
+}
+
+function renderMengchaoStandings() {
+  var html = '';
+  html += '<div class="mengchao-standings-wrap">';
+  html += '<div class="mengchao-section-title">2026 蒙超联赛积分榜</div>';
+  html += '<div class="mengchao-update-time">更新至第6轮 · 2026-06-21</div>';
+  html += '<div class="mengchao-table-container"><table class="mengchao-table">';
+  html += '<thead><tr><th>排名</th><th>球队</th><th>场</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>积分</th></tr></thead>';
+  html += '<tbody>';
+  MENGCHAO_STANDINGS.forEach(function(s) {
+    var teamInfo = MENGCHAO_TEAMS[s.team] || {};
+    var color = teamInfo.color || '#6366f1';
+    var gd = s.gf - s.ga;
+    var gdClass = gd > 0 ? 'mengchao-gd-pos' : (gd < 0 ? 'mengchao-gd-neg' : '');
+    var rankClass = '';
+    if (s.rank <= 2) rankClass = 'mengchao-rank-top';
+    else if (s.rank <= 8) rankClass = 'mengchao-rank-mid';
+    else rankClass = 'mengchao-rank-bot';
+
+    html += '<tr class="' + rankClass + '">';
+    html += '<td class="mengchao-rank">' + s.rank + '</td>';
+    html += '<td class="mengchao-team-cell"><span class="mengchao-team-dot" style="background:' + color + '"></span>' + s.team + '</td>';
+    html += '<td>' + s.played + '</td>';
+    html += '<td class="mengchao-w">' + s.won + '</td>';
+    html += '<td class="mengchao-d">' + s.drawn + '</td>';
+    html += '<td class="mengchao-l">' + s.lost + '</td>';
+    html += '<td>' + s.gf + '</td>';
+    html += '<td>' + s.ga + '</td>';
+    html += '<td class="' + gdClass + '">' + (gd > 0 ? '+' : '') + gd + '</td>';
+    html += '<td class="mengchao-pts">' + s.pts + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  html += '<div class="mengchao-legend">';
+  html += '<span class="mengchao-legend-item"><span class="mengchao-legend-dot" style="background:#22c55e"></span>晋级区（前8）</span>';
+  html += '<span class="mengchao-legend-item"><span class="mengchao-legend-dot" style="background:#ef4444"></span>淘汰区</span>';
+  html += '</div>';
+  html += '</div>';
+  return html;
+}
+
+function renderMengchaoSchedule() {
+  var html = '';
+  var currentRound = 0;
+  var today = new Date().toISOString().slice(0, 10);
+
+  // 按轮次分组
+  var rounds = {};
+  MENGCHAO_MATCHES.forEach(function(m) {
+    if (!rounds[m.round]) rounds[m.round] = [];
+    rounds[m.round].push(m);
+  });
+
+  html += '<div class="mengchao-schedule-wrap">';
+  html += '<div class="mengchao-section-title">蒙超联赛赛程</div>';
+
+  Object.keys(rounds).sort(function(a,b) { return a - b; }).forEach(function(round) {
+    var matches = rounds[round];
+    var allFinished = matches.every(function(m) { return m.finished; });
+    var hasToday = matches.some(function(m) { return m.date === today; });
+
+    html += '<div class="mengchao-round' + (allFinished ? ' mengchao-round-finished' : '') + (hasToday ? ' mengchao-round-today' : '') + '">';
+    html += '<div class="mengchao-round-header">';
+    html += '<span class="mengchao-round-label">第' + round + '轮</span>';
+    if (allFinished) html += '<span class="mengchao-round-status mengchao-status-done">已结束</span>';
+    else if (hasToday) html += '<span class="mengchao-round-status mengchao-status-live">进行中</span>';
+    else html += '<span class="mengchao-round-status mengchao-status-upcoming">未开始</span>';
+    html += '</div>';
+
+    matches.forEach(function(m) {
+      var homeInfo = MENGCHAO_TEAMS[m.home] || {};
+      var awayInfo = MENGCHAO_TEAMS[m.away] || {};
+      html += '<div class="mengchao-match' + (m.finished ? ' mengchao-match-finished' : '') + '">';
+      html += '<div class="mengchao-match-date">' + m.date + ' ' + (m.time || '') + '</div>';
+      html += '<div class="mengchao-match-body">';
+      html += '<div class="mengchao-match-team">';
+      html += '<span class="mengchao-team-dot" style="background:' + (homeInfo.color || '#6366f1') + '"></span>';
+      html += '<span class="mengchao-match-team-name">' + m.home + '</span>';
+      html += '</div>';
+      if (m.finished && m.homeScore !== null) {
+        html += '<div class="mengchao-match-score"><span class="mengchao-score-num">' + m.homeScore + '</span><span class="mengchao-score-sep">:</span><span class="mengchao-score-num">' + m.awayScore + '</span></div>';
+      } else {
+        html += '<div class="mengchao-match-score mengchao-vs">VS</div>';
+      }
+      html += '<div class="mengchao-match-team mengchao-match-team-away">';
+      html += '<span class="mengchao-team-dot" style="background:' + (awayInfo.color || '#6366f1') + '"></span>';
+      html += '<span class="mengchao-match-team-name">' + m.away + '</span>';
+      html += '</div>';
+      html += '</div>';
+      html += '<div class="mengchao-match-venue">' + m.venue + '</div>';
+      html += '</div>';
+    });
+
+    html += '</div>';
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function renderMengchaoScorers() {
+  var html = '';
+  html += '<div class="mengchao-scorers-wrap">';
+  html += '<div class="mengchao-section-title">蒙超射手榜</div>';
+
+  MENGCHAO_SCORERS.forEach(function(s) {
+    var teamInfo = MENGCHAO_TEAMS[s.team] || {};
+    var color = teamInfo.color || '#6366f1';
+    var medalIcon = '';
+    if (s.rank === 1) medalIcon = '🥇';
+    else if (s.rank === 2) medalIcon = '🥈';
+    else if (s.rank === 3) medalIcon = '🥉';
+
+    html += '<div class="mengchao-scorer-card">';
+    html += '<div class="mengchao-scorer-rank">' + (medalIcon || s.rank) + '</div>';
+    html += '<div class="mengchao-scorer-info">';
+    html += '<div class="mengchao-scorer-name">' + s.name + '</div>';
+    html += '<div class="mengchao-scorer-team"><span class="mengchao-team-dot" style="background:' + color + '"></span>' + s.team + (s.note ? ' · ' + s.note : '') + '</div>';
+    html += '</div>';
+    html += '<div class="mengchao-scorer-goals">' + s.goals + '<span class="mengchao-scorer-unit">球</span></div>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+  return html;
+}
+
+function renderMengchaoTeamsPage() {
+  var content = $('#teams-content');
+  if (!content) return;
+
+  var html = '';
+  html += '<div class="mengchao-teams-wrap">';
+  html += '<div class="mengchao-section-title">蒙超联赛球队</div>';
+  html += '<div class="mengchao-teams-grid">';
+
+  MENGCHAO_STANDINGS.forEach(function(s) {
+    var teamInfo = MENGCHAO_TEAMS[s.team] || {};
+    var color = teamInfo.color || '#6366f1';
+    html += '<div class="mengchao-team-card" onclick="showMengchaoTeamDetail(\'' + s.team + '\')" style="border-left:4px solid ' + color + '">';
+    html += '<div class="mengchao-team-card-header">';
+    html += '<span class="mengchao-team-card-rank">#' + s.rank + '</span>';
+    html += '<span class="mengchao-team-card-name">' + s.team + '</span>';
+    html += '<span class="mengchao-team-card-pts">' + s.pts + '分</span>';
+    html += '</div>';
+    html += '<div class="mengchao-team-card-stats">';
+    html += '<span>' + s.won + '胜</span><span>' + s.drawn + '平</span><span>' + s.lost + '负</span>';
+    html += '<span>进' + s.gf + '球</span><span>失' + s.ga + '球</span>';
+    html += '</div>';
+    if (teamInfo.desc) {
+      html += '<div class="mengchao-team-card-desc">' + teamInfo.desc + '</div>';
+    }
+    html += '</div>';
+  });
+
+  html += '</div></div>';
+  content.innerHTML = html;
+}
+
+function renderMengchaoPredictPage() {
+  var content = $('#predict-content');
+  if (!content) return;
+
+  var html = '';
+  html += '<div class="mengchao-predict-wrap">';
+  html += '<div class="mengchao-section-title">蒙超联赛 · 数据洞察</div>';
+  html += '<div class="mengchao-insight-cards">';
+
+  // 冠军预测
+  var topTeam = MENGCHAO_STANDINGS[0];
+  var topInfo = MENGCHAO_TEAMS[topTeam.team] || {};
+  html += '<div class="mengchao-insight-card" style="border-left:4px solid ' + (topInfo.color || '#6366f1') + '">';
+  html += '<div class="mengchao-insight-icon">🏆</div>';
+  html += '<div class="mengchao-insight-title">领跑者</div>';
+  html += '<div class="mengchao-insight-team">' + topTeam.team + '</div>';
+  html += '<div class="mengchao-insight-detail">' + topTeam.pts + '分 · ' + topTeam.won + '胜' + topTeam.drawn + '平' + topTeam.lost + '负 · 不败率' + Math.round((topTeam.won + topTeam.drawn) / topTeam.played * 100) + '%</div>';
+  html += '</div>';
+
+  // 最佳进攻
+  var bestAttack = MENGCHAO_STANDINGS.slice().sort(function(a,b) { return b.gf - a.gf; })[0];
+  var baInfo = MENGCHAO_TEAMS[bestAttack.team] || {};
+  html += '<div class="mengchao-insight-card" style="border-left:4px solid ' + (baInfo.color || '#6366f1') + '">';
+  html += '<div class="mengchao-insight-icon">⚽</div>';
+  html += '<div class="mengchao-insight-title">最强火力</div>';
+  html += '<div class="mengchao-insight-team">' + bestAttack.team + '</div>';
+  html += '<div class="mengchao-insight-detail">' + bestAttack.gf + '球 · 场均' + (bestAttack.gf / bestAttack.played).toFixed(1) + '球</div>';
+  html += '</div>';
+
+  // 最佳防守
+  var bestDef = MENGCHAO_STANDINGS.slice().sort(function(a,b) { return a.ga - b.ga; })[0];
+  var bdInfo = MENGCHAO_TEAMS[bestDef.team] || {};
+  html += '<div class="mengchao-insight-card" style="border-left:4px solid ' + (bdInfo.color || '#6366f1') + '">';
+  html += '<div class="mengchao-insight-icon">🛡️</div>';
+  html += '<div class="mengchao-insight-title">最佳防线</div>';
+  html += '<div class="mengchao-insight-team">' + bestDef.team + '</div>';
+  html += '<div class="mengchao-insight-detail">仅失' + bestDef.ga + '球 · 场均失' + (bestDef.ga / bestDef.played).toFixed(1) + '球</div>';
+  html += '</div>';
+
+  // 射手王
+  var topScorer = MENGCHAO_SCORERS[0];
+  var tsInfo = MENGCHAO_TEAMS[topScorer.team] || {};
+  html += '<div class="mengchao-insight-card" style="border-left:4px solid ' + (tsInfo.color || '#6366f1') + '">';
+  html += '<div class="mengchao-insight-icon">👟</div>';
+  html += '<div class="mengchao-insight-title">射手王</div>';
+  html += '<div class="mengchao-insight-team">' + topScorer.name + '</div>';
+  html += '<div class="mengchao-insight-detail">' + topScorer.team + ' · ' + topScorer.goals + '球</div>';
+  html += '</div>';
+
+  html += '</div>';
+
+  // 晋级形势分析
+  html += '<div class="mengchao-section-title" style="margin-top:20px">晋级形势分析</div>';
+  html += '<div class="mengchao-qualify-section">';
+  html += '<div class="mengchao-qualify-row mengchao-qualify-header"><span>排名</span><span>球队</span><span>积分</span><span>剩余</span><span>形势</span></div>';
+  MENGCHAO_STANDINGS.forEach(function(s) {
+    var remaining = s.played >= 11 ? 0 : (11 - s.played);
+    var maxPts = s.pts + remaining * 3;
+    var situation = '';
+    var sitClass = '';
+    if (s.rank <= 4) { situation = '晋级无忧'; sitClass = 'mengchao-sit-safe'; }
+    else if (s.rank <= 8) { situation = '有望晋级'; sitClass = 'mengchao-sit-likely'; }
+    else { situation = '形势严峻'; sitClass = 'mengchao-sit-danger'; }
+
+    html += '<div class="mengchao-qualify-row">';
+    html += '<span>' + s.rank + '</span>';
+    html += '<span>' + s.team + '</span>';
+    html += '<span>' + s.pts + '</span>';
+    html += '<span>' + remaining + '场</span>';
+    html += '<span class="' + sitClass + '">' + situation + '</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '</div>';
+
+  content.innerHTML = html;
+}
+
+function showMengchaoTeamDetail(teamName) {
+  var teamInfo = MENGCHAO_TEAMS[teamName] || {};
+  var standing = MENGCHAO_STANDINGS.find(function(s) { return s.team === teamName; });
+  var teamMatches = MENGCHAO_MATCHES.filter(function(m) { return m.home === teamName || m.away === teamName; });
+
+  var html = '';
+  html += '<div class="mengchao-team-detail">';
+  html += '<div class="mengchao-team-detail-header" style="background:' + (teamInfo.color || '#6366f1') + '">';
+  html += '<div class="mengchao-team-detail-name">' + teamName + '</div>';
+  if (standing) {
+    html += '<div class="mengchao-team-detail-pts">' + standing.pts + '分 · 第' + standing.rank + '名</div>';
+  }
+  html += '</div>';
+
+  if (standing) {
+    html += '<div class="mengchao-team-detail-stats">';
+    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val">' + standing.played + '</div><div class="mengchao-detail-stat-label">已赛</div></div>';
+    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val mengchao-w">' + standing.won + '</div><div class="mengchao-detail-stat-label">胜</div></div>';
+    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val mengchao-d">' + standing.drawn + '</div><div class="mengchao-detail-stat-label">平</div></div>';
+    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val mengchao-l">' + standing.lost + '</div><div class="mengchao-detail-stat-label">负</div></div>';
+    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val">' + standing.gf + '</div><div class="mengchao-detail-stat-label">进球</div></div>';
+    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val">' + standing.ga + '</div><div class="mengchao-detail-stat-label">失球</div></div>';
+    html += '</div>';
+  }
+
+  if (teamInfo.venue) {
+    html += '<div class="mengchao-team-detail-info"><span class="mengchao-detail-label">主场</span><span>' + teamInfo.venue + '</span></div>';
+  }
+  if (teamInfo.desc) {
+    html += '<div class="mengchao-team-detail-info"><span class="mengchao-detail-label">简介</span><span>' + teamInfo.desc + '</span></div>';
+  }
+
+  // 近期赛程
+  html += '<div class="mengchao-team-detail-matches">';
+  html += '<div class="mengchao-detail-section-title">赛程</div>';
+  teamMatches.forEach(function(m) {
+    var isHome = m.home === teamName;
+    html += '<div class="mengchao-team-match' + (m.finished ? ' mengchao-match-finished' : '') + '">';
+    html += '<span class="mengchao-tm-round">第' + m.round + '轮</span>';
+    html += '<span class="mengchao-tm-date">' + m.date + '</span>';
+    html += '<span class="mengchao-tm-vs">' + m.home + (m.finished && m.homeScore !== null ? ' ' + m.homeScore + ':' + m.awayScore + ' ' : ' vs ') + m.away + '</span>';
+    html += '<span class="mengchao-tm-tag">' + (isHome ? '主' : '客') + '</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  html += '</div>';
+
+  var modal = $('#team-modal');
+  var detail = $('#team-detail');
+  if (modal && detail) {
+    detail.innerHTML = html;
+    modal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
 }
