@@ -1,0 +1,77 @@
+name: Update Match Data
+
+on:
+  schedule:
+    # 每天 8:00 和 20:00 北京时间运行（UTC 0:00 和 12:00）
+    - cron: '0 0,12 * * *'
+  workflow_dispatch: # 支持手动触发
+
+permissions:
+  contents: write
+
+jobs:
+  update-worldcup:
+    name: Update World Cup Data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch World Cup data from TheSportsDB
+        run: |
+          node scripts/fetch-worldcup.js
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet data/worldcup.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push if changed
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/worldcup.json
+          git commit -m "chore: update world cup match data [skip ci]"
+          git push
+
+  update-mengchao:
+    name: Update Mengchao Data
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch Mengchao data from web
+        run: |
+          node scripts/fetch-mengchao.js
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet data/mengchao.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push if changed
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/mengchao.json
+          git commit -m "chore: update mengchao match data [skip ci]"
+          git push
