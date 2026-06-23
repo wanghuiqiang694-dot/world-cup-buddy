@@ -182,19 +182,21 @@ function renderGroupSchedule() {
   html += '<div class="search-bar"><input type="text" id="schedule-search" placeholder="搜索球队名称..."></div>';
 
   let filtered = currentGroup === 'all' ? [...MATCHES] : MATCHES.filter(m => m.group === currentGroup);
-  const todayM = [], upcomingM = [], finishedM = [];
+  const todayM = [], tomorrowM = [], upcomingM = [], finishedM = [];
   filtered.forEach(m => {
     const s = getMatchStatus(m);
     if (s === 'today') todayM.push(m);
+    else if (s === 'tomorrow') tomorrowM.push(m);
     else if (s === 'upcoming') upcomingM.push(m);
     else finishedM.push(m);
   });
   // 按时间排序
   const sortByTime = (a, b) => (a.date + 'T' + a.time).localeCompare(b.date + 'T' + b.time);
   todayM.sort(sortByTime);
+  tomorrowM.sort(sortByTime);
   upcomingM.sort(sortByTime);
-  finishedM.sort((a, b) => (b.date + 'T' + b.time).localeCompare(a.date + 'T' + a.time));
-  html += renderScheduleSections(todayM, upcomingM, finishedM);
+  finishedM.sort((a, b) => (b.date + 'T' + b.time).localeCompare(a.date + 'T' + b.time));
+  html += renderScheduleSections(todayM, tomorrowM, upcomingM, finishedM);
   return html;
 }
 
@@ -207,10 +209,11 @@ function renderKnockoutSchedule() {
   html += '<div class="ko-phase-subtitle">共 ' + koGames.length + ' 场</div>';
   html += '<div class="search-bar"><input type="text" id="schedule-search" placeholder="搜索球队名称..."></div>';
 
-  const todayM = [], upcomingM = [], finishedM = [];
+  const todayM = [], tomorrowM = [], upcomingM = [], finishedM = [];
   koGames.forEach(m => {
     const s = getMatchStatus(m);
     if (s === 'today') todayM.push(m);
+    else if (s === 'tomorrow') tomorrowM.push(m);
     else if (s === 'upcoming') upcomingM.push(m);
     else finishedM.push(m);
   });
@@ -218,20 +221,22 @@ function renderKnockoutSchedule() {
   // 按时间排序
   const sortByTime = (a, b) => (a.date + 'T' + (a.time || '')).localeCompare(b.date + 'T' + (b.time || ''));
   todayM.sort(sortByTime);
+  tomorrowM.sort(sortByTime);
   upcomingM.sort(sortByTime);
-  finishedM.sort((a, b) => (b.date + 'T' + (b.time || '')).localeCompare(a.date + 'T' + (a.time || '')));
+  finishedM.sort((a, b) => (b.date + 'T' + (b.time || '')).localeCompare(a.date + 'T' + (b.time || '')));
 
-  html += renderScheduleSections(todayM, upcomingM, finishedM, phaseNames[currentPhase]);
+  html += renderScheduleSections(todayM, tomorrowM, upcomingM, finishedM, phaseNames[currentPhase]);
   html += '<div id="bracket-section"></div>';
   return html;
 }
 
-function renderScheduleSections(todayM, upcomingM, finishedM, phaseLabel) {
+function renderScheduleSections(todayM, tomorrowM, upcomingM, finishedM, phaseLabel) {
   let html = '';
   const pl = phaseLabel || '';
 
   html += '<div class="schedule-nav">';
   html += '<a class="schedule-nav-btn today-nav" onclick="document.getElementById(\'section-today\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">今日 <span class="nav-count">' + todayM.length + '</span></a>';
+  html += '<a class="schedule-nav-btn tomorrow-nav" onclick="document.getElementById(\'section-tomorrow\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">明日 <span class="nav-count">' + tomorrowM.length + '</span></a>';
   html += '<a class="schedule-nav-btn upcoming-nav" onclick="document.getElementById(\'section-upcoming\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">未来 <span class="nav-count">' + upcomingM.length + '</span></a>';
   html += '<a class="schedule-nav-btn finished-nav" onclick="document.getElementById(\'section-finished\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">已结束 <span class="nav-count">' + finishedM.length + '</span></a>';
   html += '</div>';
@@ -242,6 +247,14 @@ function renderScheduleSections(todayM, upcomingM, finishedM, phaseLabel) {
     html += todayM.map(m => renderMatchCard(m)).join('');
   } else {
     html += '<div class="no-today-hint">今天没有' + (pl || '') + '比赛</div>';
+  }
+
+  html += '<div id="section-tomorrow" class="section-anchor"></div>';
+  if (tomorrowM.length > 0) {
+    html += '<div class="section-divider tomorrow-divider"><span>明日赛程</span><span class="section-divider-count">' + tomorrowM.length + '场</span></div>';
+    html += tomorrowM.map(m => renderMatchCard(m)).join('');
+  } else {
+    html += '<div class="no-today-hint" style="color:var(--text-tertiary)">明天没有' + (pl || '') + '比赛</div>';
   }
 
   html += '<div id="section-upcoming" class="section-anchor"></div>';
@@ -374,6 +387,9 @@ function getMatchStatus(m) {
   const now = new Date();
   const matchDate = new Date(m.date + 'T' + m.time + ':00+08:00');
   const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.getFullYear() + '-' + String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + String(tomorrow.getDate()).padStart(2, '0');
   const result = MATCH_RESULTS[m.id];
   if (result && result.score) {
     if (result.live) return 'today';
@@ -384,6 +400,7 @@ function getMatchStatus(m) {
     if (hoursSince > 3 && !(result && result.score)) return 'finished';
     return 'today';
   }
+  if (m.date === tomorrowStr) return 'tomorrow';
   if (matchDate < now) return 'finished';
   return 'upcoming';
 }

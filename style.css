@@ -291,6 +291,8 @@ body {
 .schedule-nav-btn:active { transform: scale(0.96); }
 .schedule-nav-btn:hover { transform: translateY(-1px); border-color: var(--accent); }
 .today-nav { border-color: var(--accent); color: var(--accent); }
+.tomorrow-nav { border-color: #a78bfa; color: #a78bfa; }
+.tomorrow-nav:hover { background: rgba(167, 139, 250, 0.08); }
 .today-nav:hover { background: rgba(var(--accent-rgb), 0.08); }
 .upcoming-nav { border-color: #38bdf8; color: #38bdf8; }
 .upcoming-nav:hover { background: rgba(56, 189, 248, 0.08); }
@@ -437,8 +439,8 @@ body {
   margin-left: 4px;
 }
 .today-divider { color: var(--accent); }
+.tomorrow-divider { color: #a78bfa; }
 .upcoming-divider { color: #38bdf8; }
-.finished-divider { color: var(--text-dim); }
 
 .date-header {
   font-size: 13px;
