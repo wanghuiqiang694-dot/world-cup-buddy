@@ -1,8 +1,64 @@
 {
-  "lastUpdated": "2026-06-23T00:00:00.000Z",
-  "league": "",
+  "lastUpdated": "2026-06-23T14:18:34.040Z",
+  "league": "德甲",
   "season": "2025-2026",
   "matches": [],
-  "standings": [],
+  "standings": [
+    {
+      "rank": 1,
+      "team": "Bayern Munich",
+      "played": "34",
+      "won": "28",
+      "drawn": "5",
+      "lost": "1",
+      "gf": "122",
+      "ga": "36",
+      "pts": "89"
+    },
+    {
+      "rank": 2,
+      "team": "Borussia Dortmund",
+      "played": "34",
+      "won": "22",
+      "drawn": "7",
+      "lost": "5",
+      "gf": "70",
+      "ga": "34",
+      "pts": "73"
+    },
+    {
+      "rank": 3,
+      "team": "RB Leipzig",
+      "played": "34",
+      "won": "20",
+      "drawn": "5",
+      "lost": "9",
+      "gf": "66",
+      "ga": "47",
+      "pts": "65"
+    },
+    {
+      "rank": 4,
+      "team": "Stuttgart",
+      "played": "34",
+      "won": "18",
+      "drawn": "8",
+      "lost": "8",
+      "gf": "71",
+      "ga": "49",
+      "pts": "62"
+    },
+    {
+      "rank": 5,
+      "team": "Hoffenheim",
+      "played": "34",
+      "won": "18",
+      "drawn": "7",
+      "lost": "9",
+      "gf": "65",
+      "ga": "52",
+      "pts": "61"
+    }
+  ],
   "matchResults": {}
 }

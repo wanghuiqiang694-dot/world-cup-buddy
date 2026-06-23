@@ -1,8 +1,64 @@
 {
-  "lastUpdated": "2026-06-23T00:00:00.000Z",
-  "league": "",
+  "lastUpdated": "2026-06-23T14:18:36.222Z",
+  "league": "意甲",
   "season": "2025-2026",
   "matches": [],
-  "standings": [],
+  "standings": [
+    {
+      "rank": 1,
+      "team": "Inter Milan",
+      "played": "38",
+      "won": "27",
+      "drawn": "6",
+      "lost": "5",
+      "gf": "89",
+      "ga": "35",
+      "pts": "87"
+    },
+    {
+      "rank": 2,
+      "team": "Napoli",
+      "played": "38",
+      "won": "23",
+      "drawn": "7",
+      "lost": "8",
+      "gf": "58",
+      "ga": "36",
+      "pts": "76"
+    },
+    {
+      "rank": 3,
+      "team": "Roma",
+      "played": "38",
+      "won": "23",
+      "drawn": "4",
+      "lost": "11",
+      "gf": "59",
+      "ga": "31",
+      "pts": "73"
+    },
+    {
+      "rank": 4,
+      "team": "Como",
+      "played": "38",
+      "won": "20",
+      "drawn": "11",
+      "lost": "7",
+      "gf": "65",
+      "ga": "29",
+      "pts": "71"
+    },
+    {
+      "rank": 5,
+      "team": "AC Milan",
+      "played": "38",
+      "won": "20",
+      "drawn": "10",
+      "lost": "8",
+      "gf": "53",
+      "ga": "35",
+      "pts": "70"
+    }
+  ],
   "matchResults": {}
 }

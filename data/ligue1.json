@@ -1,8 +1,64 @@
 {
-  "lastUpdated": "2026-06-23T00:00:00.000Z",
-  "league": "",
+  "lastUpdated": "2026-06-23T14:18:38.411Z",
+  "league": "法甲",
   "season": "2025-2026",
   "matches": [],
-  "standings": [],
+  "standings": [
+    {
+      "rank": 1,
+      "team": "Paris Saint-Germain",
+      "played": "34",
+      "won": "24",
+      "drawn": "4",
+      "lost": "6",
+      "gf": "74",
+      "ga": "29",
+      "pts": "76"
+    },
+    {
+      "rank": 2,
+      "team": "Lens",
+      "played": "34",
+      "won": "22",
+      "drawn": "4",
+      "lost": "8",
+      "gf": "66",
+      "ga": "35",
+      "pts": "70"
+    },
+    {
+      "rank": 3,
+      "team": "Lille",
+      "played": "34",
+      "won": "18",
+      "drawn": "7",
+      "lost": "9",
+      "gf": "52",
+      "ga": "37",
+      "pts": "61"
+    },
+    {
+      "rank": 4,
+      "team": "Lyon",
+      "played": "34",
+      "won": "18",
+      "drawn": "6",
+      "lost": "10",
+      "gf": "53",
+      "ga": "40",
+      "pts": "60"
+    },
+    {
+      "rank": 5,
+      "team": "Marseille",
+      "played": "34",
+      "won": "18",
+      "drawn": "5",
+      "lost": "11",
+      "gf": "63",
+      "ga": "45",
+      "pts": "59"
+    }
+  ],
   "matchResults": {}
 }

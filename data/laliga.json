@@ -1,8 +1,64 @@
 {
-  "lastUpdated": "2026-06-23T00:00:00.000Z",
-  "league": "",
+  "lastUpdated": "2026-06-23T14:18:31.857Z",
+  "league": "西甲",
   "season": "2025-2026",
   "matches": [],
-  "standings": [],
+  "standings": [
+    {
+      "rank": 1,
+      "team": "Barcelona",
+      "played": "38",
+      "won": "31",
+      "drawn": "1",
+      "lost": "6",
+      "gf": "95",
+      "ga": "36",
+      "pts": "94"
+    },
+    {
+      "rank": 2,
+      "team": "Real Madrid",
+      "played": "38",
+      "won": "27",
+      "drawn": "5",
+      "lost": "6",
+      "gf": "77",
+      "ga": "35",
+      "pts": "86"
+    },
+    {
+      "rank": 3,
+      "team": "Villarreal",
+      "played": "38",
+      "won": "22",
+      "drawn": "6",
+      "lost": "10",
+      "gf": "72",
+      "ga": "46",
+      "pts": "72"
+    },
+    {
+      "rank": 4,
+      "team": "Atlético Madrid",
+      "played": "38",
+      "won": "21",
+      "drawn": "6",
+      "lost": "11",
+      "gf": "62",
+      "ga": "44",
+      "pts": "69"
+    },
+    {
+      "rank": 5,
+      "team": "Real Betis",
+      "played": "38",
+      "won": "15",
+      "drawn": "15",
+      "lost": "8",
+      "gf": "59",
+      "ga": "48",
+      "pts": "60"
+    }
+  ],
   "matchResults": {}
 }
