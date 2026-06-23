@@ -1239,8 +1239,92 @@ $$('.quick-ask').forEach(btn => { btn.addEventListener('click', () => { if (chat
 
 // ========== 设置（已移至侧边栏隐藏面板） ==========
 
+// ========== 云端数据加载 ==========
+var DATA_BASE_URL = 'https://raw.githubusercontent.com/wanghuiqiang694-dot/world-cup-buddy/main/data';
+var _cloudDataLoaded = false;
+
+async function loadCloudData() {
+  try {
+    var wcResp = await fetch(DATA_BASE_URL + '/worldcup.json?t=' + Date.now());
+    if (wcResp.ok) {
+      var wcData = await wcResp.json();
+      if (wcData.matches && wcData.matches.length > 0) {
+        // 用云端数据覆盖硬编码的 MATCHES 和 MATCH_RESULTS
+        MATCHES.length = 0;
+        wcData.matches.forEach(function(m) { MATCHES.push(m); });
+        Object.keys(MATCH_RESULTS).forEach(function(k) { if (typeof k === 'number' || !isNaN(k)) delete MATCH_RESULTS[k]; });
+        Object.assign(MATCH_RESULTS, wcData.matchResults || {});
+        console.log('[云端] 世界杯数据已加载：' + MATCHES.length + ' 场赛程，' + Object.keys(MATCH_RESULTS).length + ' 条比分');
+      }
+    }
+
+    var mcResp = await fetch(DATA_BASE_URL + '/mengchao.json?t=' + Date.now());
+    if (mcResp.ok) {
+      var mcData = await mcResp.json();
+      if (mcData.teams) {
+        Object.keys(MENGCHAO_TEAMS).forEach(function(k) { delete MENGCHAO_TEAMS[k]; });
+        Object.assign(MENGCHAO_TEAMS, mcData.teams);
+      }
+      if (mcData.standings) {
+        MENGCHAO_STANDINGS.length = 0;
+        mcData.standings.forEach(function(s) { MENGCHAO_STANDINGS.push(s); });
+      }
+      if (mcData.matches) {
+        MENGCHAO_MATCHES.length = 0;
+        mcData.matches.forEach(function(m) { MENGCHAO_MATCHES.push(m); });
+      }
+      if (mcData.scorers) {
+        MENGCHAO_SCORERS.length = 0;
+        mcData.scorers.forEach(function(s) { MENGCHAO_SCORERS.push(s); });
+      }
+      console.log('[云端] 蒙超数据已加载：' + MENGCHAO_MATCHES.length + ' 场赛程');
+    }
+
+    _cloudDataLoaded = true;
+    // 缓存到 localStorage 供离线使用
+    try {
+      localStorage.setItem('wc_cloud_data_time', Date.now().toString());
+      localStorage.setItem('wc_cloud_matches', JSON.stringify(MATCHES));
+      localStorage.setItem('wc_cloud_results', JSON.stringify(MATCH_RESULTS));
+      localStorage.setItem('wc_cloud_mengchao', JSON.stringify({
+        teams: MENGCHAO_TEAMS,
+        standings: MENGCHAO_STANDINGS,
+        matches: MENGCHAO_MATCHES,
+        scorers: MENGCHAO_SCORERS
+      }));
+    } catch (e) {}
+    showRefreshIndicator('数据已从云端同步');
+  } catch (err) {
+    console.warn('[云端] 数据加载失败，使用缓存/硬编码数据：', err.message);
+    // 尝试从 localStorage 缓存恢复
+    try {
+      var cached = localStorage.getItem('wc_cloud_matches');
+      if (cached) {
+        var cachedMatches = JSON.parse(cached);
+        if (cachedMatches.length > 0) {
+          MATCHES.length = 0;
+          cachedMatches.forEach(function(m) { MATCHES.push(m); });
+        }
+      }
+      var cachedResults = localStorage.getItem('wc_cloud_results');
+      if (cachedResults) Object.assign(MATCH_RESULTS, JSON.parse(cachedResults));
+      var cachedMC = localStorage.getItem('wc_cloud_mengchao');
+      if (cachedMC) {
+        var mc = JSON.parse(cachedMC);
+        if (mc.teams) Object.assign(MENGCHAO_TEAMS, mc.teams);
+        if (mc.standings) { MENGCHAO_STANDINGS.length = 0; mc.standings.forEach(function(s) { MENGCHAO_STANDINGS.push(s); }); }
+        if (mc.matches) { MENGCHAO_MATCHES.length = 0; mc.matches.forEach(function(m) { MENGCHAO_MATCHES.push(m); }); }
+        if (mc.scorers) { MENGCHAO_SCORERS.length = 0; mc.scorers.forEach(function(s) { MENGCHAO_SCORERS.push(s); }); }
+      }
+      console.log('[缓存] 已从 localStorage 恢复数据');
+    } catch (e2) {}
+  }
+}
+
 // ========== 初始化 ==========
-function init() {
+async function init() {
+  // 先加载云端数据，再渲染页面
+  await loadCloudData();
   renderEventPage();
   renderTeamsPage();
   fetchLiveScores();
