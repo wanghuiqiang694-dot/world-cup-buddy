@@ -78,3 +78,38 @@ jobs:
           git commit -m "chore: update mengchao match data [skip ci]"
           git pull --rebase origin main
           git push
+
+  update-leagues:
+    name: Update League Data
+    needs: update-mengchao
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Fetch league data from TheSportsDB
+        run: |
+          node scripts/fetch-leagues.js
+
+      - name: Check for changes
+        id: check
+        run: |
+          if git diff --quiet data/; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push if changed
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          git commit -m "chore: update league match data [skip ci]"
+          git pull --rebase origin main
+          git push
