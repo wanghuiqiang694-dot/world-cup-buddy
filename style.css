@@ -1889,3 +1889,111 @@ body.light-mode .mengchao-team-card { box-shadow:0 1px 4px rgba(0,0,0,0.06); }
 .mengchao-predict-disclaimer { display:flex; align-items:flex-start; gap:8px; margin-top:16px; padding:12px 14px; border-radius:var(--radius); background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2); }
 .mengchao-disclaimer-icon { font-size:16px; flex-shrink:0; margin-top:1px; }
 .mengchao-disclaimer-text { font-size:12px; line-height:1.7; color:var(--text-dim); }
+
+/* ========== 送花/扔鸡蛋互动 ========== */
+.fan-action-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  margin: 4px 0;
+}
+.fan-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.25s;
+  position: relative;
+  overflow: visible;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.fan-btn:active { transform: scale(0.92); }
+.flower-btn {
+  background: rgba(251,113,133,0.1);
+  border-color: rgba(251,113,133,0.3);
+  color: #fb7185;
+}
+.flower-btn:hover { background: rgba(251,113,133,0.18); }
+.egg-btn {
+  background: rgba(251,191,36,0.1);
+  border-color: rgba(251,191,36,0.3);
+  color: #fbbf24;
+}
+.egg-btn:hover { background: rgba(251,191,36,0.18); }
+.fan-btn .fan-icon { font-size: 18px; line-height: 1; }
+.fan-btn .fan-count {
+  font-size: 14px;
+  font-weight: 700;
+  min-width: 16px;
+  text-align: center;
+}
+.fan-btn.voted {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* 球队卡片列表中的迷你互动条 */
+.fan-mini-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.fan-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 12px;
+  transition: all 0.2s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.fan-mini-btn:active { transform: scale(0.9); }
+.fan-mini-btn.flower-mini { color: #fb7185; }
+.fan-mini-btn.flower-mini:hover { background: rgba(251,113,133,0.1); }
+.fan-mini-btn.egg-mini { color: #fbbf24; }
+.fan-mini-btn.egg-mini:hover { background: rgba(251,191,36,0.1); }
+.fan-mini-btn .mini-icon { font-size: 14px; }
+.fan-mini-btn .mini-count { font-weight: 600; }
+
+/* 飘落动画 */
+.fan-particle {
+  position: fixed;
+  font-size: 20px;
+  pointer-events: none;
+  z-index: 9999;
+  animation: fan-fall 1s ease-out forwards;
+}
+@keyframes fan-fall {
+  0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(80px) scale(0.3) rotate(180deg); }
+}
+.fan-particle.egg-particle {
+  animation: egg-splat 0.8s ease-out forwards;
+}
+@keyframes egg-splat {
+  0% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+  60% { opacity: 1; transform: translateY(50px) scale(1.1) rotate(90deg); }
+  100% { opacity: 0; transform: translateY(60px) scale(0.2) rotate(120deg); }
+}
+
+/* 蒙超射手卡片内的迷你互动 */
+.mengchao-scorer-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
