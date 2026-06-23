@@ -975,17 +975,13 @@ function buildWorldCupContext() {
 
 async function callQianfan(userMsg) {
   const apiKey = localStorage.getItem('wc_api_key');
-  const secretKey = localStorage.getItem('wc_secret_key');
-  if (!apiKey || !secretKey) return '请先在「设置」页面配置百度千帆的 API Key 和 Secret Key，然后就能和我聊球了！';
+  if (!apiKey) return '请先在「设置」页面配置百度千帆的 API Key，然后就能和我聊球了！';
   try {
-    const tokenRes = await fetch('https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=' + apiKey + '&client_secret=' + secretKey);
-    const tokenData = await tokenRes.json();
-    if (!tokenData.access_token) return 'API Key 或 Secret Key 不正确，请检查设置。';
     const body = { model: 'ernie-4.0-8k', messages: [{ role: 'user', content: buildWorldCupContext() }, ...getChatHistory(), { role: 'user', content: userMsg }], temperature: 0.8, top_p: 0.9 };
-    const res = await fetch('https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions_pro?access_token=' + tokenData.access_token, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await fetch('https://qianfan.baidubce.com/v2/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey }, body: JSON.stringify(body) });
     const data = await res.json();
     if (data.error_code) return '接口出错：' + (data.error_msg || '未知错误') + '。如果是不支持该模型，可在代码中换成 ernie-3.5-8k。';
-    return data.result || '抱歉，我没想好怎么说...';
+    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '抱歉，我没想好怎么说...';
   } catch (err) {
     console.error('千帆 API 调用失败:', err);
     return '网络请求失败，请检查网络连接后重试。';
@@ -1045,23 +1041,19 @@ $$('.quick-ask').forEach(btn => { btn.addEventListener('click', () => { if (chat
 
 // ========== 设置页面 ==========
 function loadSettings() {
-  const apiKey = localStorage.getItem('wc_api_key') || '';
-  const secretKey = localStorage.getItem('wc_secret_key') || '';
-  const apiEl = $('#api-key'); if (apiEl) apiEl.value = apiKey;
-  const secEl = $('#secret-key'); if (secEl) secEl.value = secretKey;
-  if (apiKey) { const s = $('#save-status'); if (s) { s.textContent = '已配置 API Key'; s.style.color = 'var(--success)'; } }
-  const footballStatus = $('#football-save-status'); if (footballStatus) { footballStatus.textContent = '比分数据自动实时更新，无需配置'; footballStatus.style.color = 'var(--success)'; }
+  var apiKey = localStorage.getItem('wc_api_key') || '';
+  var apiEl = $('#api-key'); if (apiEl) apiEl.value = apiKey;
+  if (apiKey) { var s = $('#save-status'); if (s) { s.textContent = '已配置 API Key'; s.style.color = 'var(--success)'; } }
+  var footballStatus = $('#football-save-status'); if (footballStatus) { footballStatus.textContent = '比分数据自动实时更新，无需配置'; footballStatus.style.color = 'var(--success)'; }
 }
 
-const _saveSettings = $('#save-settings');
+var _saveSettings = $('#save-settings');
 if (_saveSettings) _saveSettings.addEventListener('click', () => {
-  const apiKey = $('#api-key').value.trim();
-  const secretKey = $('#secret-key').value.trim();
+  var apiKey = $('#api-key').value.trim();
   localStorage.setItem('wc_api_key', apiKey);
-  localStorage.setItem('wc_secret_key', secretKey);
-  const status = $('#save-status');
-  if (apiKey && secretKey) { status.textContent = '保存成功！现在可以去「AI 聊球」页面聊天了'; status.style.color = 'var(--success)'; }
-  else { status.textContent = '请填写完整的 API Key 和 Secret Key'; status.style.color = 'var(--warning)'; }
+  var status = $('#save-status');
+  if (apiKey) { status.textContent = '保存成功！现在可以去「AI 聊球」页面聊天了'; status.style.color = 'var(--success)'; }
+  else { status.textContent = '请填写 API Key'; status.style.color = 'var(--warning)'; }
 });
 
 // ========== 初始化 ==========
