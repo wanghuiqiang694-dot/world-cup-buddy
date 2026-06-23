@@ -6,7 +6,7 @@
   <title>2026 世界杯观赛搭子</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="light-mode">
 
   <!-- 左侧侧边栏遮罩 -->
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
@@ -48,13 +48,17 @@
         <span class="sidebar-item-icon">🇫🇷</span>
         <span class="sidebar-item-text">法甲</span>
       </a>
+      <a class="sidebar-item" data-league="mengchao" onclick="switchLeague('mengchao')">
+        <span class="sidebar-item-icon">🐎</span>
+        <span class="sidebar-item-text">蒙超</span>
+      </a>
     </div>
 
     <div class="sidebar-section">
       <div class="sidebar-section-title">更多</div>
       <a class="sidebar-item" onclick="toggleDarkMode()">
-        <span class="sidebar-item-icon">🌙</span>
-        <span class="sidebar-item-text" id="dark-mode-text">深色模式</span>
+        <span class="sidebar-item-icon">☀️</span>
+        <span class="sidebar-item-text" id="dark-mode-text">浅色模式</span>
       </a>
     </div>
 
@@ -168,6 +172,7 @@
   </div>
 
   <script src="data.js"></script>
+  <script src="mengchao-data.js"></script>
   <script src="skins.js"></script>
   <script src="predict.js"></script>
   <script src="app.js"></script>
