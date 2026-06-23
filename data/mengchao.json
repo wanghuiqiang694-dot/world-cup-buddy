@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-06-23T00:00:00+08:00",
+  "lastUpdated": "2026-06-23T14:04:37.506Z",
   "teams": {
     "赤峰": {
       "name": "赤峰队",
@@ -100,7 +100,6 @@
   },
   "standings": [
     {
-      "rank": 1,
       "team": "赤峰",
       "played": 6,
       "won": 5,
@@ -108,10 +107,21 @@
       "lost": 0,
       "gf": 15,
       "ga": 6,
-      "pts": 16
+      "pts": 16,
+      "rank": 1
     },
     {
-      "rank": 2,
+      "team": "通辽",
+      "played": 7,
+      "won": 3,
+      "drawn": 4,
+      "lost": 0,
+      "gf": 10,
+      "ga": 5,
+      "pts": 13,
+      "rank": 2
+    },
+    {
       "team": "鄂尔多斯",
       "played": 6,
       "won": 3,
@@ -119,21 +129,10 @@
       "lost": 0,
       "gf": 12,
       "ga": 2,
-      "pts": 12
+      "pts": 12,
+      "rank": 3
     },
     {
-      "rank": 3,
-      "team": "通辽",
-      "played": 6,
-      "won": 3,
-      "drawn": 3,
-      "lost": 0,
-      "gf": 9,
-      "ga": 4,
-      "pts": 12
-    },
-    {
-      "rank": 4,
       "team": "乌兰察布",
       "played": 6,
       "won": 3,
@@ -141,10 +140,21 @@
       "lost": 1,
       "gf": 11,
       "ga": 8,
-      "pts": 11
+      "pts": 11,
+      "rank": 4
     },
     {
-      "rank": 5,
+      "team": "阿拉善盟",
+      "played": 7,
+      "won": 3,
+      "drawn": 2,
+      "lost": 2,
+      "gf": 10,
+      "ga": 8,
+      "pts": 11,
+      "rank": 5
+    },
+    {
       "team": "包头",
       "played": 6,
       "won": 3,
@@ -152,21 +162,10 @@
       "lost": 2,
       "gf": 8,
       "ga": 4,
-      "pts": 10
+      "pts": 10,
+      "rank": 6
     },
     {
-      "rank": 6,
-      "team": "阿拉善盟",
-      "played": 6,
-      "won": 3,
-      "drawn": 1,
-      "lost": 2,
-      "gf": 9,
-      "ga": 8,
-      "pts": 10
-    },
-    {
-      "rank": 7,
       "team": "巴彦淖尔",
       "played": 6,
       "won": 2,
@@ -174,10 +173,10 @@
       "lost": 3,
       "gf": 6,
       "ga": 10,
-      "pts": 7
+      "pts": 7,
+      "rank": 7
     },
     {
-      "rank": 8,
       "team": "呼和浩特",
       "played": 6,
       "won": 1,
@@ -185,10 +184,10 @@
       "lost": 3,
       "gf": 7,
       "ga": 11,
-      "pts": 5
+      "pts": 5,
+      "rank": 8
     },
     {
-      "rank": 9,
       "team": "兴安盟",
       "played": 6,
       "won": 1,
@@ -196,10 +195,10 @@
       "lost": 3,
       "gf": 3,
       "ga": 9,
-      "pts": 5
+      "pts": 5,
+      "rank": 9
     },
     {
-      "rank": 10,
       "team": "锡林郭勒盟",
       "played": 6,
       "won": 1,
@@ -207,10 +206,10 @@
       "lost": 4,
       "gf": 8,
       "ga": 9,
-      "pts": 4
+      "pts": 4,
+      "rank": 10
     },
     {
-      "rank": 11,
       "team": "呼伦贝尔",
       "played": 6,
       "won": 1,
@@ -218,10 +217,10 @@
       "lost": 4,
       "gf": 6,
       "ga": 11,
-      "pts": 4
+      "pts": 4,
+      "rank": 11
     },
     {
-      "rank": 12,
       "team": "乌海",
       "played": 6,
       "won": 0,
@@ -229,7 +228,8 @@
       "lost": 4,
       "gf": 2,
       "ga": 15,
-      "pts": 2
+      "pts": 2,
+      "rank": 12
     }
   ],
   "matches": [
@@ -733,9 +733,9 @@
       "date": "2026-06-28",
       "time": "16:00",
       "venue": "阿左旗巴彦浩特多功能体育场",
-      "homeScore": null,
-      "awayScore": null,
-      "finished": false
+      "homeScore": 1,
+      "awayScore": 1,
+      "finished": true
     },
     {
       "id": "mc43",
