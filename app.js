@@ -103,6 +103,11 @@ $$('.tab').forEach(tab => {
     if (target) target.classList.add('active');
     if (tab.dataset.tab === 'event') renderEventPage();
     if (tab.dataset.tab === 'teams') renderTeamsPage();
+    // 如果当前不是世界杯联赛，在新 tab 页面上也显示覆盖层
+    if (currentLeague !== 'worldcup') {
+      var config = LEAGUE_CONFIG[currentLeague];
+      showLeagueComingSoon(currentLeague, config);
+    }
   });
 });
 
@@ -153,10 +158,11 @@ function switchLeague(league) {
   var config = LEAGUE_CONFIG[league];
 
   if (league === 'worldcup') {
-    // 已有数据，切换回世界杯
+    // 切换回世界杯：移除覆盖层，恢复页面内容
     updateHeaderForLeague(config);
+    removeLeagueComingSoon();
   } else {
-    // 其他联赛 - 显示即将开放提示
+    // 其他联赛 - 显示即将开放覆盖层
     updateHeaderForLeague(config);
     showLeagueComingSoon(league, config);
   }
@@ -171,19 +177,35 @@ function updateHeaderForLeague(config) {
 }
 
 function showLeagueComingSoon(league, config) {
-  // 在所有页面中显示"即将开放"
-  var pages = $$('.page');
-  pages.forEach(function(page) {
-    if (page.classList.contains('active')) {
-      page.innerHTML = '<div class="league-coming-soon">' +
-        '<div class="league-coming-soon-icon">' + getLeagueIcon(league) + '</div>' +
-        '<div class="league-coming-soon-title">' + config.name + '</div>' +
-        '<div class="league-coming-soon-subtitle">即将开放，敬请期待</div>' +
-        '<div class="league-coming-soon-desc">我们正在为 ' + config.name + ' 准备专属的赛程、数据和 AI 预测功能，上线后会在侧边栏通知你。</div>' +
-        '<button class="league-back-btn" onclick="switchLeague(\'worldcup\')">返回世界杯</button>' +
-        '</div>';
-    }
+  // 先移除旧覆盖层
+  removeLeagueComingSoon(true);
+  // 覆盖层直接挂在 body 上（fixed 定位，不破坏任何页面内容）
+  var overlay = document.createElement('div');
+  overlay.className = 'league-coming-soon-overlay';
+  overlay.innerHTML = '<div class="league-coming-soon">' +
+    '<div class="league-coming-soon-icon">' + getLeagueIcon(league) + '</div>' +
+    '<div class="league-coming-soon-title">' + config.name + '</div>' +
+    '<div class="league-coming-soon-subtitle">即将开放，敬请期待</div>' +
+    '<div class="league-coming-soon-desc">我们正在为 ' + config.name + ' 准备专属的赛程、数据和 AI 预测功能，上线后会在侧边栏通知你。</div>' +
+    '<button class="league-back-btn" onclick="switchLeague(\'worldcup\')">返回世界杯</button>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function removeLeagueComingSoon(skipRerender) {
+  // 移除所有覆盖层
+  $$('.league-coming-soon-overlay').forEach(function(el) {
+    el.remove();
   });
+  // 切换回世界杯时重新渲染当前页面内容
+  if (!skipRerender) {
+    var activeTab = document.querySelector('.tab.active');
+    if (activeTab) {
+      var tabName = activeTab.dataset.tab;
+      if (tabName === 'event') renderEventPage();
+      if (tabName === 'teams') renderTeamsPage();
+    }
+  }
 }
 
 function getLeagueIcon(league) {
