@@ -430,7 +430,7 @@ body {
 .tab:hover { color: var(--text); background: rgba(255,255,255,0.03); }
 
 /* 内容区 */
-.page { display: none; padding: 16px; max-width: 800px; margin: 0 auto; }
+.page { display: none; padding: 16px; max-width: 800px; margin: 0 auto; position: relative; }
 .page.active { display: block; }
 
 /* 分组卡片 */
@@ -1597,7 +1597,21 @@ body {
   .sidebar { width: 260px; }
 }
 
-/* ========== 联赛即将开放页面 ========== */
+/* ========== 联赛即将开放页面（覆盖层，不破坏原始页面内容） ========== */
+.league-coming-soon-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+  overflow-y: auto;
+}
 .league-coming-soon {
   text-align: center;
   padding: 60px 24px;
