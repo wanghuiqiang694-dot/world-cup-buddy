@@ -377,6 +377,7 @@ function renderLeagueTeamsPage(leagueKey) {
     html += '<span>' + s.won + '胜</span><span>' + s.drawn + '平</span><span>' + s.lost + '负</span>';
     html += '<span>进' + s.gf + '球</span><span>失' + s.ga + '球</span>';
     html += '</div>';
+    html += renderFanMiniBar('team_' + s.team);
     html += '</div>';
   });
 
