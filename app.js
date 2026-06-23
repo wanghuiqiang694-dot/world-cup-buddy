@@ -2101,26 +2101,41 @@ function showMengchaoTeamDetail(teamName) {
   }
 }
 
-// ========== 赛程导航栏滚动收缩 ==========
+// ========== 赛程导航栏：侧边浮动按钮 ==========
 (function() {
-  var lastScrollY = 0;
-  var COMPACT_THRESHOLD = 150; // 滚动超过150px即进入收缩态
+  var FLOAT_THRESHOLD = 200; // 滚动超过200px后弹出侧边按钮
+  var floatNav = null;
 
-  function updateNavCompact() {
-    var navs = document.querySelectorAll('.schedule-nav');
-    var scrollY = window.scrollY || window.pageYOffset;
-    var shouldCompact = scrollY > COMPACT_THRESHOLD;
-    navs.forEach(function(nav) {
-      if (shouldCompact && !nav.classList.contains('compact')) {
-        nav.classList.add('compact');
-      } else if (!shouldCompact && nav.classList.contains('compact')) {
-        nav.classList.remove('compact');
-      }
-    });
-    lastScrollY = scrollY;
+  function createFloatNav() {
+    if (floatNav) return floatNav;
+    floatNav = document.createElement('div');
+    floatNav.className = 'schedule-float-nav';
+    floatNav.innerHTML =
+      '<a class="schedule-float-btn float-today" onclick="document.getElementById(\'section-today\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">今</a>' +
+      '<a class="schedule-float-btn float-tomorrow" onclick="document.getElementById(\'section-tomorrow\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">明</a>' +
+      '<a class="schedule-float-btn float-upcoming" onclick="document.getElementById(\'section-upcoming\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">未</a>' +
+      '<a class="schedule-float-btn float-finished" onclick="document.getElementById(\'section-finished\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">完</a>';
+    document.body.appendChild(floatNav);
+    return floatNav;
   }
 
-  window.addEventListener('scroll', updateNavCompact, { passive: true });
+  function updateFloatNav() {
+    var scrollY = window.scrollY || window.pageYOffset;
+    // 只在赛事数据tab且存在schedule-nav时才显示
+    var hasNav = document.querySelector('.schedule-nav');
+    if (!hasNav) {
+      if (floatNav) floatNav.classList.remove('visible');
+      return;
+    }
+    var nav = createFloatNav();
+    if (scrollY > FLOAT_THRESHOLD) {
+      nav.classList.add('visible');
+    } else {
+      nav.classList.remove('visible');
+    }
+  }
+
+  window.addEventListener('scroll', updateFloatNav, { passive: true });
   // 初始检查
-  setTimeout(updateNavCompact, 500);
+  setTimeout(updateFloatNav, 500);
 })();
