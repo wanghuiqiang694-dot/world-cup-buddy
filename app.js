@@ -2100,3 +2100,27 @@ function showMengchaoTeamDetail(teamName) {
     document.body.style.overflow = 'hidden';
   }
 }
+
+// ========== 赛程导航栏滚动收缩 ==========
+(function() {
+  var lastScrollY = 0;
+  var COMPACT_THRESHOLD = 60; // 滚动超过60px即进入收缩态
+
+  function updateNavCompact() {
+    var navs = document.querySelectorAll('.schedule-nav');
+    var scrollY = window.scrollY || window.pageYOffset;
+    var shouldCompact = scrollY > COMPACT_THRESHOLD;
+    navs.forEach(function(nav) {
+      if (shouldCompact && !nav.classList.contains('compact')) {
+        nav.classList.add('compact');
+      } else if (!shouldCompact && nav.classList.contains('compact')) {
+        nav.classList.remove('compact');
+      }
+    });
+    lastScrollY = scrollY;
+  }
+
+  window.addEventListener('scroll', updateNavCompact, { passive: true });
+  // 初始检查
+  setTimeout(updateNavCompact, 500);
+})();
