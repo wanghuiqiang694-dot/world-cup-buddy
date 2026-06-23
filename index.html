@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026 世界杯观赛搭子</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="header" style="position:relative;">
+    <button class="skin-btn" id="skin-toggle" title="切换皮肤">🎨</button>
+    <h1><img class="wc-official-logo" src="https://digitalhub.fifa.com/transform/8a4e6f0b-2965-4c0c-8b62-b6e6c4c5e7b6/2026-FIFA-World-Cup-Logo" alt="2026世界杯" onerror="this.style.display='none';this.nextElementSibling.style.display='inline';"><span class="wc-logo-fallback" style="display:none;font-size:20px;">2026</span> 世界杯观赛搭子</h1>
+    <div class="subtitle">美加墨世界杯 · 48队 · 12组 · 104场</div>
+  </div>
+
+  <!-- 皮肤选择面板 -->
+  <div class="skin-panel" id="skin-panel">
+    <div class="skin-panel-content" style="position:relative;">
+      <button class="skin-panel-close" id="skin-panel-close">&times;</button>
+      <div class="skin-panel-title">选择球队皮肤</div>
+      <div class="skin-list" id="skin-list"></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="event">赛事数据</div>
+    <div class="tab" data-tab="teams">球队</div>
+    <div class="tab" data-tab="predict">预测</div>
+    <div class="tab" data-tab="chat">AI 聊球</div>
+    <div class="tab" data-tab="settings">设置</div>
+  </div>
+
+  <!-- 赛事数据页面（含子导航） -->
+  <div class="page active" id="page-event">
+    <div class="sub-nav" id="event-sub-nav"></div>
+    <div id="event-content"></div>
+  </div>
+
+  <!-- 球队页面 -->
+  <div class="page" id="page-teams"></div>
+
+  <!-- 球队详情弹窗 -->
+  <div class="modal-overlay" id="team-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="modal-close">&times;</button>
+      <div id="team-detail"></div>
+    </div>
+  </div>
+
+  <!-- 球员详情弹窗 -->
+  <div class="modal-overlay" id="player-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="player-modal-close">&times;</button>
+      <div id="player-detail"></div>
+    </div>
+  </div>
+
+  <!-- 预测页面 -->
+  <div class="page" id="page-predict">
+    <div id="predict-content"></div>
+  </div>
+
+  <!-- 预测详情弹窗 -->
+  <div class="modal-overlay" id="predict-modal">
+    <div class="modal-content">
+      <button class="modal-close" id="predict-modal-close">&times;</button>
+      <div id="predict-detail"></div>
+    </div>
+  </div>
+
+  <!-- AI 聊天页面 -->
+  <div class="page" id="page-chat">
+    <div class="quick-asks">
+      <button class="quick-ask" data-q="谁会赢得本届世界杯？">谁会夺冠？</button>
+      <button class="quick-ask" data-q="分析一下C组的出线形势">C组出线分析</button>
+      <button class="quick-ask" data-q="姆巴佩和哈兰德谁更强？">姆巴佩vs哈兰德</button>
+      <button class="quick-ask" data-q="哪场比赛最值得看？">推荐必看比赛</button>
+    </div>
+    <div class="chat-container">
+      <div class="chat-messages" id="chat-messages">
+        <div class="msg bot">
+          <div class="msg-bubble">你好！我是你的世界杯观赛搭子 ⚽ 问我任何关于 2026 世界杯的问题吧！</div>
+        </div>
+      </div>
+      <div class="chat-input-bar">
+        <input type="text" id="chat-input" placeholder="聊点什么..." autocomplete="off">
+        <button id="chat-send">发送</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 设置页面 -->
+  <div class="page" id="page-settings">
+    <div class="settings-panel">
+      <h3 style="margin-bottom:16px;color:var(--accent);">实时比分</h3>
+      <div id="football-save-status" style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-dim);">比分数据自动实时更新，无需配置</div>
+      <div class="hint" style="margin-top:8px;">赛程和比分每分钟自动从 TheSportsDB 拉取，无需手动配置任何 Key</div>
+    </div>
+    <div class="settings-panel" style="margin-top:16px;">
+      <h3 style="margin-bottom:16px;color:var(--accent);">AI 聊天配置</h3>
+      <label>百度千帆 API Key</label>
+      <input type="password" id="api-key" placeholder="输入你的 API Key">
+      <div class="hint">在 <a href="https://console.bce.baidu.com/qianfan/" target="_blank" style="color:var(--accent)">千帆控制台</a> 获取，选择「应用接入」创建应用即可</div>
+      <label>Secret Key</label>
+      <input type="password" id="secret-key" placeholder="输入你的 Secret Key">
+      <div class="hint">创建应用时同时获得，两个 Key 配合使用</div>
+      <button class="save-btn" id="save-settings">保存配置</button>
+      <div id="save-status" style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="skins.js"></script>
+  <script src="predict.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
