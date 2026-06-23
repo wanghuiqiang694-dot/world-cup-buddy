@@ -2104,7 +2104,7 @@ function showMengchaoTeamDetail(teamName) {
 // ========== 赛程导航栏滚动收缩 ==========
 (function() {
   var lastScrollY = 0;
-  var COMPACT_THRESHOLD = 60; // 滚动超过60px即进入收缩态
+  var COMPACT_THRESHOLD = 150; // 滚动超过150px即进入收缩态
 
   function updateNavCompact() {
     var navs = document.querySelectorAll('.schedule-nav');
