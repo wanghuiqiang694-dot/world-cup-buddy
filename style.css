@@ -484,6 +484,13 @@ body {
   z-index: 50;
   background: var(--primary);
   padding: 8px 0;
+  transition: gap 0.3s, padding 0.3s, margin-bottom 0.3s;
+}
+/* 滚动收缩态 */
+.schedule-nav.compact {
+  gap: 4px;
+  padding: 4px 0;
+  margin-bottom: 8px;
 }
 .schedule-nav-btn {
   flex: 1;
@@ -497,10 +504,28 @@ body {
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.25s;
+  transition: all 0.3s;
   border: 1px solid var(--card-border);
   background: var(--card-bg);
   color: var(--text);
+}
+/* 收缩态按钮 */
+.schedule-nav.compact .schedule-nav-btn {
+  padding: 6px 4px;
+  font-size: 12px;
+  border-radius: 8px;
+  gap: 3px;
+  border-width: 0;
+  background: rgba(255,255,255,0.04);
+}
+.schedule-nav.compact .today-nav { background: rgba(var(--accent-rgb), 0.12); }
+.schedule-nav.compact .tomorrow-nav { background: rgba(167, 139, 250, 0.12); }
+.schedule-nav.compact .upcoming-nav { background: rgba(56, 189, 248, 0.12); }
+.schedule-nav.compact .finished-nav { background: rgba(255,255,255,0.06); }
+/* 收缩态数量标签缩小 */
+.schedule-nav.compact .nav-count {
+  font-size: 10px;
+  padding: 0px 4px;
 }
 .schedule-nav-btn:active { transform: scale(0.96); }
 .schedule-nav-btn:hover { transform: translateY(-1px); border-color: var(--accent); }
