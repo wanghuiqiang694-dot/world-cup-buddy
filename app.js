@@ -1738,6 +1738,8 @@ function renderMengchaoNextPredict() {
     // 客队预测进球 = 客队攻击力与主队防守力的平均
     var awayExp = (awayGPG + homeGAPG) / 2;
     // 排名差距微调（差距越大优势越大，但幅度小）
+    var homeRank = homeStanding ? homeStanding.rank : 7;
+    var awayRank = awayStanding ? awayStanding.rank : 7;
     var rankDiff = awayRank - homeRank;
     homeExp += rankDiff * 0.05;
     awayExp -= rankDiff * 0.05;
