@@ -1037,8 +1037,13 @@ function switchToEventTab() {
   if (eventTab) eventTab.classList.add('active');
   const eventPage = $('#page-event');
   if (eventPage) eventPage.classList.add('active');
-  eventSubView = 'schedule';
-  renderEventPage();
+  if (currentLeague === 'mengchao') {
+    mengchaoSubView = 'standings';
+    renderMengchaoEventPage();
+  } else {
+    eventSubView = 'schedule';
+    renderEventPage();
+  }
 }
 
 function resultClass(result) {
@@ -1323,9 +1328,15 @@ async function fetchLiveScores() {
     });
     localStorage.setItem('wc_match_results', JSON.stringify(MATCH_RESULTS));
     localStorage.setItem('wc_last_fetch', Date.now().toString());
-    const activePage = document.querySelector('.page.active');
-    if (activePage && activePage.id === 'page-event') renderEventPage();
-    if (activePage && activePage.id === 'page-teams') renderTeamsPage();
+    // 根据当前联赛分发渲染，避免蒙超页面被世界杯覆盖
+    var activePage = document.querySelector('.page.active');
+    if (currentLeague === 'mengchao') {
+      if (activePage && activePage.id === 'page-event') renderMengchaoEventPage();
+      if (activePage && activePage.id === 'page-teams') renderMengchaoTeamsPage();
+    } else {
+      if (activePage && activePage.id === 'page-event') renderEventPage();
+      if (activePage && activePage.id === 'page-teams') renderTeamsPage();
+    }
     if (updated > 0) showRefreshIndicator('已更新 ' + updated + ' 条数据');
   } catch (err) {
     console.warn('TheSportsDB 请求失败:', err.message);
