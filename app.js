@@ -894,6 +894,7 @@ function renderTeamsPage() {
         html += '<div class="team-card-name">' + t.name + '</div>';
         html += '<div class="team-card-group">' + t.group + '组</div>';
         html += '<span class="team-card-tag ' + strengthClass(t.strength) + '">' + t.label + '</span>';
+        html += renderFanMiniBar('team_' + t.name);
         html += '</div>';
       });
       html += '</div>';
@@ -942,6 +943,7 @@ function openTeamDetail(team) {
     html += '<div class="detail-tags">';
     if (h.titles > 0) html += '<span class="detail-tag">' + h.titles + '届冠军</span>';
     html += '<span class="detail-tag">核心: ' + h.star + '</span><span class="detail-tag">主帅: ' + h.coach + '</span></div>';
+    html += renderFanActionBar('team_' + team);
     html += '<div class="detail-section" style="padding-bottom:8px;"><div class="detail-section-title">历史最佳</div><div style="font-size:14px;color:var(--text);">' + h.best + '</div></div>';
     if (h.recent && h.recent.length > 0) {
       html += '<div class="detail-section"><div class="detail-section-title">近四届战绩</div><table class="history-table"><thead><tr><th>年份</th><th>成绩</th><th>详情</th></tr></thead><tbody>';
@@ -952,6 +954,7 @@ function openTeamDetail(team) {
     }
   } else {
     html += '<div class="detail-info-grid"><div class="detail-info-item"><div class="detail-info-value">0</div><div class="detail-info-label">夺冠次数</div></div><div class="detail-info-item"><div class="detail-info-value">0</div><div class="detail-info-label">参赛次数</div></div><div class="detail-info-item"><div class="detail-info-value">' + (tv ? formatValue(tv) : '-') + '</div><div class="detail-info-label">球队身价</div></div><div class="detail-info-item"><div class="detail-info-value">' + s + '</div><div class="detail-info-label">实力评分</div></div></div>';
+    html += renderFanActionBar('team_' + team);
     html += '<div class="detail-section"><div class="detail-section-title">历史最佳</div><div style="font-size:14px;color:var(--text);">首次参赛！创造历史的开始</div></div>';
   }
 
@@ -1116,6 +1119,9 @@ function openPlayerDetail(team, playerName, type) {
     html += '<span class="detail-tag">' + player.assists + ' 助攻</span>';
     html += '</div>';
   }
+
+  // 送花/扔鸡蛋
+  html += renderFanActionBar('player_' + playerName);
 
   // 荣誉
   if (player.honors && player.honors.length > 0) {
@@ -1757,6 +1763,7 @@ function renderMengchaoScorers() {
     html += '<div class="mengchao-scorer-team"><span class="mengchao-team-dot" style="background:' + color + '"></span>' + s.team + (s.note ? ' · ' + s.note : '') + '</div>';
     html += '</div>';
     html += '<div class="mengchao-scorer-goals">' + s.goals + '<span class="mengchao-scorer-unit">球</span></div>';
+    html += '<div class="mengchao-scorer-actions">' + renderFanMiniScorer('player_' + s.name) + '</div>';
     html += '</div>';
   });
 
@@ -1785,6 +1792,8 @@ function renderMengchaoTeamsPage() {
     html += '<div class="mengchao-team-card-stats">';
     html += '<span>' + s.won + '胜</span><span>' + s.drawn + '平</span><span>' + s.lost + '负</span>';
     html += '<span>进' + s.gf + '球</span><span>失' + s.ga + '球</span>';
+    html += '</div>';
+    html += renderFanMiniBar('team_' + s.team);
     html += '</div>';
     if (teamInfo.desc) {
       html += '<div class="mengchao-team-card-desc">' + teamInfo.desc + '</div>';
@@ -2069,6 +2078,8 @@ function showMengchaoTeamDetail(teamName) {
     html += '</div>';
   }
 
+  html += renderFanActionBar('team_' + teamName);
+
   if (teamInfo.venue) {
     html += '<div class="mengchao-team-detail-info"><span class="mengchao-detail-label">主场</span><span>' + teamInfo.venue + '</span></div>';
   }
@@ -2100,6 +2111,166 @@ function showMengchaoTeamDetail(teamName) {
     document.body.style.overflow = 'hidden';
   }
 }
+
+// ========== 送花/扔鸡蛋互动引擎 ==========
+var FAN_STORE_KEY = 'wc_fan_actions';
+var FAN_SEEDED_KEY = 'wc_fan_seeded_v2';
+
+function getFanData() {
+  try {
+    var d = localStorage.getItem(FAN_STORE_KEY);
+    return d ? JSON.parse(d) : {};
+  } catch(e) { return {}; }
+}
+
+function saveFanData(data) {
+  try { localStorage.setItem(FAN_STORE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+// 为所有球队/球员生成随机种子数据（首次访问时）
+function seedFanData() {
+  if (localStorage.getItem(FAN_SEEDED_KEY)) return;
+  var data = getFanData();
+  // 世界杯球队
+  if (typeof MATCHES !== 'undefined') {
+    var teams = {};
+    MATCHES.forEach(function(m) {
+      teams[m.home] = 1; teams[m.away] = 1;
+    });
+    Object.keys(teams).forEach(function(t) {
+      var key = 'team_' + t;
+      if (!data[key]) {
+        data[key] = { flowers: Math.floor(Math.random() * 80) + 10, eggs: Math.floor(Math.random() * 25) };
+      }
+    });
+  }
+  // 蒙超球队
+  if (typeof MENGCHAO_STANDINGS !== 'undefined') {
+    MENGCHAO_STANDINGS.forEach(function(s) {
+      var key = 'team_' + s.team;
+      if (!data[key]) {
+        data[key] = { flowers: Math.floor(Math.random() * 30) + 5, eggs: Math.floor(Math.random() * 12) };
+      }
+    });
+  }
+  // 蒙超射手
+  if (typeof MENGCHAO_SCORERS !== 'undefined') {
+    MENGCHAO_SCORERS.forEach(function(s) {
+      var key = 'player_' + s.name;
+      if (!data[key]) {
+        data[key] = { flowers: Math.floor(Math.random() * 20) + 3, eggs: Math.floor(Math.random() * 8) };
+      }
+    });
+  }
+  // 世界杯球员（射手+助攻）
+  if (typeof TOP_SCORERS !== 'undefined') {
+    TOP_SCORERS.forEach(function(p) {
+      var key = 'player_' + p.name;
+      if (!data[key]) {
+        data[key] = { flowers: Math.floor(Math.random() * 50) + 5, eggs: Math.floor(Math.random() * 15) };
+      }
+    });
+  }
+  if (typeof TOP_ASSISTS !== 'undefined') {
+    TOP_ASSISTS.forEach(function(p) {
+      var key = 'player_' + p.name;
+      if (!data[key]) {
+        data[key] = { flowers: Math.floor(Math.random() * 40) + 3, eggs: Math.floor(Math.random() * 12) };
+      }
+    });
+  }
+  // 六大联赛球队
+  if (typeof LEAGUE_DATA !== 'undefined') {
+    Object.keys(LEAGUE_DATA).forEach(function(lk) {
+      var standings = LEAGUE_DATA[lk] && LEAGUE_DATA[lk].standings;
+      if (standings && standings.length) {
+        standings.forEach(function(s) {
+          var key = 'team_' + s.team;
+          if (!data[key]) {
+            data[key] = { flowers: Math.floor(Math.random() * 60) + 10, eggs: Math.floor(Math.random() * 20) };
+          }
+        });
+      }
+    });
+  }
+  saveFanData(data);
+  localStorage.setItem(FAN_SEEDED_KEY, '1');
+}
+
+function getFanCounts(key) {
+  var data = getFanData();
+  return data[key] || { flowers: 0, eggs: 0 };
+}
+
+function doFanAction(key, type, btnEl) {
+  var data = getFanData();
+  if (!data[key]) data[key] = { flowers: 0, eggs: 0 };
+  data[key][type] = (data[key][type] || 0) + 1;
+  saveFanData(data);
+
+  // 更新所有同key的计数显示
+  document.querySelectorAll('[data-fan-key="' + key + '"] .fan-count-' + type).forEach(function(el) {
+    el.textContent = data[key][type];
+  });
+  document.querySelectorAll('[data-fan-key="' + key + '"] .mini-count-' + type).forEach(function(el) {
+    el.textContent = data[key][type];
+  });
+
+  // 飘落动画
+  spawnParticles(btnEl, type);
+}
+
+// 飘落粒子效果
+function spawnParticles(btnEl, type) {
+  if (!btnEl) return;
+  var rect = btnEl.getBoundingClientRect();
+  var cx = rect.left + rect.width / 2;
+  var cy = rect.top + rect.height / 2;
+  var emojis = type === 'flowers' ? ['🌸', '🌺', '💮', '🏵️'] : ['🥚', '💥', '🍳'];
+  for (var i = 0; i < 5; i++) {
+    var p = document.createElement('span');
+    p.className = 'fan-particle' + (type === 'eggs' ? ' egg-particle' : '');
+    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    p.style.left = (cx + (Math.random() - 0.5) * 40) + 'px';
+    p.style.top = (cy - 10) + 'px';
+    document.body.appendChild(p);
+    setTimeout(function(el) { el.remove(); }, 1100, p);
+  }
+}
+
+// 生成详情弹窗中的互动条HTML
+function renderFanActionBar(key) {
+  var counts = getFanCounts(key);
+  return '<div class="fan-action-bar" data-fan-key="' + key + '">' +
+    '<button class="fan-btn flower-btn" onclick="doFanAction(\'' + key + '\',\'flowers\',this)">' +
+    '<span class="fan-icon">🌸</span><span>送花</span><span class="fan-count fan-count-flowers">' + counts.flowers + '</span></button>' +
+    '<button class="fan-btn egg-btn" onclick="doFanAction(\'' + key + '\',\'eggs\',this)">' +
+    '<span class="fan-icon">🥚</span><span>扔蛋</span><span class="fan-count fan-count-eggs">' + counts.eggs + '</span></button>' +
+    '</div>';
+}
+
+// 生成卡片列表中的迷你互动条HTML
+function renderFanMiniBar(key) {
+  var counts = getFanCounts(key);
+  return '<div class="fan-mini-bar" data-fan-key="' + key + '">' +
+    '<span class="fan-mini-btn flower-mini" onclick="event.stopPropagation();doFanAction(\'' + key + '\',\'flowers\',this)">' +
+    '<span class="mini-icon">🌸</span><span class="mini-count mini-count-flowers">' + counts.flowers + '</span></span>' +
+    '<span class="fan-mini-btn egg-mini" onclick="event.stopPropagation();doFanAction(\'' + key + '\',\'eggs\',this)">' +
+    '<span class="mini-icon">🥚</span><span class="mini-count mini-count-eggs">' + counts.eggs + '</span></span>' +
+    '</div>';
+}
+
+// 射手榜行内极简互动（更紧凑）
+function renderFanMiniScorer(key) {
+  var counts = getFanCounts(key);
+  return '<span class="fan-mini-btn flower-mini" onclick="event.stopPropagation();doFanAction(\'' + key + '\',\'flowers\',this)" style="font-size:11px;padding:1px 5px;">' +
+    '🌸<span class="mini-count mini-count-flowers" style="font-size:11px;">' + counts.flowers + '</span></span>' +
+    '<span class="fan-mini-btn egg-mini" onclick="event.stopPropagation();doFanAction(\'' + key + '\',\'eggs\',this)" style="font-size:11px;padding:1px 5px;">' +
+    '🥚<span class="mini-count mini-count-eggs" style="font-size:11px;">' + counts.eggs + '</span></span>';
+}
+
+// 初始化种子数据
+seedFanData();
 
 // ========== 赛程导航栏：侧边浮动按钮 ==========
 (function() {
