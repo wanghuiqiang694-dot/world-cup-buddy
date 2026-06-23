@@ -484,13 +484,17 @@ body {
   z-index: 50;
   background: var(--primary);
   padding: 8px 0;
-  transition: gap 0.3s, padding 0.3s, margin-bottom 0.3s;
+  transition: gap 0.3s ease, padding 0.3s ease, margin-bottom 0.3s ease, background 0.3s ease;
 }
 /* 滚动收缩态 */
 .schedule-nav.compact {
-  gap: 4px;
-  padding: 4px 0;
+  gap: 6px;
+  padding: 5px 0;
   margin-bottom: 8px;
+  background: rgba(26, 31, 54, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(99, 102, 241, 0.12);
 }
 .schedule-nav-btn {
   flex: 1;
@@ -504,28 +508,28 @@ body {
   font-weight: 600;
   cursor: pointer;
   text-decoration: none;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
   border: 1px solid var(--card-border);
   background: var(--card-bg);
   color: var(--text);
 }
-/* 收缩态按钮 */
+/* 收缩态按钮 — 更紧凑的胶囊样式 */
 .schedule-nav.compact .schedule-nav-btn {
-  padding: 6px 4px;
+  padding: 5px 6px;
   font-size: 12px;
-  border-radius: 8px;
+  border-radius: 20px;
   gap: 3px;
   border-width: 0;
-  background: rgba(255,255,255,0.04);
+  background: transparent;
 }
-.schedule-nav.compact .today-nav { background: rgba(var(--accent-rgb), 0.12); }
-.schedule-nav.compact .tomorrow-nav { background: rgba(167, 139, 250, 0.12); }
-.schedule-nav.compact .upcoming-nav { background: rgba(56, 189, 248, 0.12); }
-.schedule-nav.compact .finished-nav { background: rgba(255,255,255,0.06); }
+.schedule-nav.compact .today-nav { background: rgba(var(--accent-rgb), 0.15); }
+.schedule-nav.compact .tomorrow-nav { background: rgba(167, 139, 250, 0.15); }
+.schedule-nav.compact .upcoming-nav { background: rgba(56, 189, 248, 0.15); }
+.schedule-nav.compact .finished-nav { background: rgba(255,255,255,0.08); }
 /* 收缩态数量标签缩小 */
 .schedule-nav.compact .nav-count {
   font-size: 10px;
-  padding: 0px 4px;
+  padding: 0px 5px;
 }
 .schedule-nav-btn:active { transform: scale(0.96); }
 .schedule-nav-btn:hover { transform: translateY(-1px); border-color: var(--accent); }
