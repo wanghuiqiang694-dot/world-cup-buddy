@@ -114,10 +114,12 @@ $$('.tab').forEach(tab => {
         if (typeof verifyAllPredictions === 'function') verifyAllPredictions();
         if (typeof renderPredictPage === 'function') renderPredictPage();
       }
-      // 如果当前不是世界杯联赛，在新 tab 页面上也显示覆盖层
-      if (currentLeague !== 'worldcup') {
+      // 如果当前不是世界杯联赛，在新 tab 页面上也渲染对应联赛内容
+      if (currentLeague !== 'worldcup' && currentLeague !== 'mengchao') {
         var config = LEAGUE_CONFIG[currentLeague];
-        showLeagueComingSoon(currentLeague, config);
+        if (tab.dataset.tab === 'event' && typeof renderLeagueEventPage === 'function') renderLeagueEventPage(currentLeague);
+        if (tab.dataset.tab === 'teams' && typeof renderLeagueTeamsPage === 'function') renderLeagueTeamsPage(currentLeague);
+        if (tab.dataset.tab === 'predict' && typeof renderLeaguePredictPage === 'function') renderLeaguePredictPage(currentLeague);
       }
     }
   });
@@ -184,9 +186,10 @@ function switchLeague(league) {
     removeLeagueComingSoon(true);
     renderMengchaoPage();
   } else {
-    // 其他联赛 - 显示即将开放覆盖层
+    // 其他联赛 - 使用通用联赛渲染
     updateHeaderForLeague(config);
-    showLeagueComingSoon(league, config);
+    removeLeagueComingSoon(true);
+    if (typeof renderLeaguePage === 'function') renderLeaguePage(league);
   }
   closeSidebar();
 }
@@ -1280,6 +1283,27 @@ async function loadCloudData() {
       console.log('[云端] 蒙超数据已加载：' + MENGCHAO_MATCHES.length + ' 场赛程');
     }
 
+    // 加载各联赛数据
+    var leagueKeys = ['champions', 'premier', 'laliga', 'bundesliga', 'seriea', 'ligue1'];
+    for (var li = 0; li < leagueKeys.length; li++) {
+      try {
+        var lk = leagueKeys[li];
+        var lResp = await fetch(DATA_BASE_URL + '/' + lk + '.json?t=' + Date.now());
+        if (lResp.ok) {
+          var lData = await lResp.json();
+          if (typeof LEAGUE_DATA !== 'undefined' && LEAGUE_DATA[lk]) {
+            if (lData.matches) LEAGUE_DATA[lk].matches = lData.matches;
+            if (lData.standings) LEAGUE_DATA[lk].standings = lData.standings;
+            if (lData.matchResults) LEAGUE_DATA[lk].matchResults = lData.matchResults;
+            if (lData.lastUpdated) LEAGUE_DATA[lk].lastUpdated = lData.lastUpdated;
+            console.log('[云端] ' + lk + ' 数据已加载：' + (lData.matches ? lData.matches.length : 0) + ' 场赛程');
+          }
+        }
+      } catch (le) {
+        console.warn('[云端] ' + leagueKeys[li] + ' 数据加载失败:', le.message);
+      }
+    }
+
     _cloudDataLoaded = true;
     // 缓存到 localStorage 供离线使用
     try {
@@ -1292,6 +1316,13 @@ async function loadCloudData() {
         matches: MENGCHAO_MATCHES,
         scorers: MENGCHAO_SCORERS
       }));
+      // 缓存各联赛数据
+      if (typeof LEAGUE_DATA !== 'undefined') {
+        var leagueKeys = ['champions', 'premier', 'laliga', 'bundesliga', 'seriea', 'ligue1'];
+        leagueKeys.forEach(function(lk) {
+          try { localStorage.setItem('wc_cloud_' + lk, JSON.stringify(LEAGUE_DATA[lk])); } catch (e) {}
+        });
+      }
     } catch (e) {}
     showRefreshIndicator('数据已从云端同步');
   } catch (err) {
@@ -1317,6 +1348,19 @@ async function loadCloudData() {
         if (mc.scorers) { MENGCHAO_SCORERS.length = 0; mc.scorers.forEach(function(s) { MENGCHAO_SCORERS.push(s); }); }
       }
       console.log('[缓存] 已从 localStorage 恢复数据');
+      // 恢复联赛缓存
+      var leagueKeys = ['champions', 'premier', 'laliga', 'bundesliga', 'seriea', 'ligue1'];
+      leagueKeys.forEach(function(lk) {
+        try {
+          var cachedL = localStorage.getItem('wc_cloud_' + lk);
+          if (cachedL && typeof LEAGUE_DATA !== 'undefined' && LEAGUE_DATA[lk]) {
+            var ld = JSON.parse(cachedL);
+            if (ld.matches) LEAGUE_DATA[lk].matches = ld.matches;
+            if (ld.standings) LEAGUE_DATA[lk].standings = ld.standings;
+            if (ld.matchResults) LEAGUE_DATA[lk].matchResults = ld.matchResults;
+          }
+        } catch (e3) {}
+      });
     } catch (e2) {}
   }
 }
