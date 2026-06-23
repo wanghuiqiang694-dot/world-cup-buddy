@@ -637,6 +637,12 @@ function verifyAllPredictions() {
 var predictView = 'today'; // 'today' | 'history'
 
 function renderPredictPage() {
+  // 如果当前是蒙超联赛，跳转到蒙超预测渲染
+  if (typeof currentLeague !== 'undefined' && currentLeague === 'mengchao') {
+    if (typeof renderMengchaoPredictPage === 'function') renderMengchaoPredictPage();
+    return;
+  }
+
   var container = document.getElementById('predict-content');
   if (!container) return;
 
