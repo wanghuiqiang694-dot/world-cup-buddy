@@ -624,10 +624,11 @@ function verifyAllPredictions() {
   var changed = false;
   for (var matchId in preds) {
     if (preds.hasOwnProperty(matchId)) {
-      var oldPred = preds[matchId];
-      if (!oldPred.result) {
-        var result = MATCH_RESULTS[matchId];
-        if (result && result.score) {
+      var result = MATCH_RESULTS[matchId];
+      if (result && result.score) {
+        var oldResult = preds[matchId].result;
+        // 无验证结果，或已有验证但比分发生变化时都需要重验
+        if (!oldResult || oldResult.score !== result.score) {
           verifyPrediction(parseInt(matchId));
           changed = true;
         }
