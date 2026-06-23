@@ -788,6 +788,11 @@ function renderHistoryPredictions() {
 // ========== 预测卡片（今日/近期） ==========
 function renderPredictCard(match) {
   var pred = getSinglePrediction(match.id);
+  // 重新验证，确保命中状态是最新的
+  if (pred && pred.result) {
+    var rePred = verifyPrediction(match.id);
+    if (rePred) pred = rePred;
+  }
   var result = MATCH_RESULTS[match.id];
   var isFinished = result && result.score && !result.live;
   var phaseLabel = match.group ? (match.group + '组') : (match.koLabel || '');
@@ -858,6 +863,10 @@ function renderPredictCard(match) {
 
 // ========== 往期预测卡片 ==========
 function renderHistoryCard(pred) {
+  // 重新验证，确保 MATCH_RESULTS 更新后命中状态也更新
+  var rePred = verifyPrediction(pred.matchId);
+  if (rePred) pred = rePred;
+
   var c = pred.result.correct;
   var correctItems = [];
   if (c.wdl) correctItems.push('胜平负');
