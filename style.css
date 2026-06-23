@@ -81,7 +81,221 @@ body {
   letter-spacing: 1px;
 }
 
-/* 皮肤按钮 */
+/* ========== 左侧侧边栏 ========== */
+.sidebar-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 1500;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s, visibility 0.3s;
+  backdrop-filter: blur(2px);
+}
+.sidebar-overlay.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 280px;
+  background: var(--primary-light);
+  border-right: 1px solid var(--card-border);
+  z-index: 2000;
+  transform: translateX(-100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.sidebar.open {
+  transform: translateX(0);
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--card-border);
+  background: var(--accent2);
+}
+.sidebar-brand {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--accent-light);
+  letter-spacing: 0.5px;
+}
+.sidebar-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+  padding: 4px;
+}
+.sidebar-close:hover { color: var(--accent); }
+
+.sidebar-section {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.08);
+}
+.sidebar-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 4px 20px 10px;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  position: relative;
+}
+.sidebar-item:hover {
+  background: rgba(var(--accent-rgb), 0.06);
+  color: var(--accent-light);
+}
+.sidebar-item.active {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.1);
+  font-weight: 700;
+}
+.sidebar-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 6px;
+  bottom: 6px;
+  width: 3px;
+  background: var(--accent);
+  border-radius: 0 3px 3px 0;
+}
+.sidebar-item-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.sidebar-item-text {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 联赛未开放标记 */
+.sidebar-item[data-league]:not([data-league="worldcup"]) .sidebar-item-text::after {
+  content: '即将开放';
+  font-size: 10px;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 6px;
+  border-radius: 6px;
+  margin-left: 8px;
+  font-weight: 400;
+}
+
+/* 侧边栏底部 */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 20px;
+  border-top: 1px solid rgba(var(--accent-rgb), 0.06);
+}
+.sidebar-version {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.15);
+  cursor: default;
+  user-select: none;
+  text-align: center;
+}
+
+/* 隐藏的设置面板 */
+.sidebar-settings {
+  display: none;
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--primary-light);
+  z-index: 10;
+  flex-direction: column;
+  overflow-y: auto;
+  animation: slideInRight 0.25s ease;
+}
+.sidebar-settings.open {
+  display: flex;
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.sidebar-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px 16px;
+  border-bottom: 1px solid var(--card-border);
+  background: var(--accent2);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+}
+.sidebar-settings-close {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+}
+.sidebar-settings-close:hover { color: var(--accent); }
+.sidebar-settings .settings-panel {
+  margin: 16px;
+  border-radius: var(--radius);
+}
+
+/* 汉堡菜单按钮 */
+.menu-btn {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #fff;
+  transition: all 0.25s;
+  z-index: 10;
+}
+.menu-btn:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  transform: translateY(-50%) scale(1.08);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 皮肤按钮调整位置 - 不和菜单按钮冲突 */
 .skin-btn {
   position: absolute;
   top: 50%;
@@ -1380,4 +1594,80 @@ body {
   .predict-summary { grid-template-columns: repeat(2, 1fr); }
   .predict-detail-grid { grid-template-columns: repeat(2, 1fr); }
   .predict-teams { font-size: 14px; gap: 8px; }
+  .sidebar { width: 260px; }
 }
+
+/* ========== 联赛即将开放页面 ========== */
+.league-coming-soon {
+  text-align: center;
+  padding: 60px 24px;
+  animation: modalIn 0.4s ease;
+}
+.league-coming-soon-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+  animation: livePulse 2s infinite;
+}
+.league-coming-soon-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.league-coming-soon-subtitle {
+  font-size: 16px;
+  color: var(--text-dim);
+  margin-bottom: 24px;
+}
+.league-coming-soon-desc {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.8;
+  max-width: 320px;
+  margin: 0 auto 32px;
+}
+.league-back-btn {
+  display: inline-block;
+  padding: 12px 32px;
+  border: 1px solid var(--accent);
+  border-radius: 24px;
+  background: transparent;
+  color: var(--accent);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+.league-back-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}
+.league-back-btn:active {
+  transform: scale(0.96);
+}
+
+/* ========== 浅色模式 ========== */
+body.light-mode {
+  --primary: #f0f2f5;
+  --primary-light: #ffffff;
+  --secondary: #e8ecf1;
+  --accent: #4f46e5;
+  --accent-light: #6366f1;
+  --accent-rgb: 79, 70, 229;
+  --accent2: #e0e7ff;
+  --text: #1e293b;
+  --text-dim: #64748b;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --header-bg: #4f46e5;
+  --header-text: #ffffff;
+  --tab-bg: #ffffff;
+  --tab-active-bg: rgba(79, 70, 229, 0.08);
+}
+body.light-mode .match-finished { opacity: 0.7; }
+body.light-mode .sidebar { background: #ffffff; border-right-color: #e2e8f0; }
+body.light-mode .sidebar-header { background: #f1f5f9; }
+body.light-mode .sidebar-item:hover { background: rgba(79, 70, 229, 0.05); }
+body.light-mode .sidebar-item.active { background: rgba(79, 70, 229, 0.08); }
+body.light-mode .sidebar-settings { background: #ffffff; }
+body.light-mode .sidebar-settings-header { background: #f1f5f9; }

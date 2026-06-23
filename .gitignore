@@ -1,1 +1,3 @@
 node_modules/\n.DS_Store\n*.zip\n*.png\n*.log
+deploy.zip
+screenshot-*.png

@@ -106,6 +106,160 @@ $$('.tab').forEach(tab => {
   });
 });
 
+// ========== 左侧侧边栏 ==========
+var _sidebar = $('#sidebar');
+var _sidebarOverlay = $('#sidebar-overlay');
+var _menuToggle = $('#menu-toggle');
+var _sidebarClose = $('#sidebar-close');
+
+function openSidebar() {
+  if (_sidebar) _sidebar.classList.add('open');
+  if (_sidebarOverlay) _sidebarOverlay.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+  if (_sidebar) _sidebar.classList.remove('open');
+  if (_sidebarOverlay) _sidebarOverlay.classList.remove('open');
+  document.body.style.overflow = '';
+  // 同时关闭隐藏设置面板
+  var sp = $('#sidebar-settings');
+  if (sp) sp.classList.remove('open');
+}
+
+if (_menuToggle) _menuToggle.addEventListener('click', openSidebar);
+if (_sidebarClose) _sidebarClose.addEventListener('click', closeSidebar);
+if (_sidebarOverlay) _sidebarOverlay.addEventListener('click', closeSidebar);
+
+// ========== 联赛切换 ==========
+var currentLeague = 'worldcup';
+
+var LEAGUE_CONFIG = {
+  worldcup: { name: '2026 世界杯', subtitle: '美加墨世界杯 · 48队 · 12组 · 104场' },
+  champions: { name: '欧冠联赛', subtitle: '2025-26 赛季 · 欧洲冠军联赛' },
+  premier: { name: '英超', subtitle: '2025-26 赛季 · 英格兰超级联赛' },
+  laliga: { name: '西甲', subtitle: '2025-26 赛季 · 西班牙甲级联赛' },
+  bundesliga: { name: '德甲', subtitle: '2025-26 赛季 · 德国甲级联赛' },
+  seriea: { name: '意甲', subtitle: '2025-26 赛季 · 意大利甲级联赛' },
+  ligue1: { name: '法甲', subtitle: '2025-26 赛季 · 法国甲级联赛' }
+};
+
+function switchLeague(league) {
+  // 更新侧边栏高亮
+  $$('.sidebar-item[data-league]').forEach(function(item) {
+    item.classList.toggle('active', item.dataset.league === league);
+  });
+  currentLeague = league;
+  var config = LEAGUE_CONFIG[league];
+
+  if (league === 'worldcup') {
+    // 已有数据，切换回世界杯
+    updateHeaderForLeague(config);
+  } else {
+    // 其他联赛 - 显示即将开放提示
+    updateHeaderForLeague(config);
+    showLeagueComingSoon(league, config);
+  }
+  closeSidebar();
+}
+
+function updateHeaderForLeague(config) {
+  var h1 = document.querySelector('.header h1');
+  var subtitle = document.querySelector('.header .subtitle');
+  if (h1) h1.innerHTML = config.name + '观赛搭子';
+  if (subtitle) subtitle.textContent = config.subtitle;
+}
+
+function showLeagueComingSoon(league, config) {
+  // 在所有页面中显示"即将开放"
+  var pages = $$('.page');
+  pages.forEach(function(page) {
+    if (page.classList.contains('active')) {
+      page.innerHTML = '<div class="league-coming-soon">' +
+        '<div class="league-coming-soon-icon">' + getLeagueIcon(league) + '</div>' +
+        '<div class="league-coming-soon-title">' + config.name + '</div>' +
+        '<div class="league-coming-soon-subtitle">即将开放，敬请期待</div>' +
+        '<div class="league-coming-soon-desc">我们正在为 ' + config.name + ' 准备专属的赛程、数据和 AI 预测功能，上线后会在侧边栏通知你。</div>' +
+        '<button class="league-back-btn" onclick="switchLeague(\'worldcup\')">返回世界杯</button>' +
+        '</div>';
+    }
+  });
+}
+
+function getLeagueIcon(league) {
+  var icons = {
+    worldcup: '🏆',
+    champions: '🇪🇺',
+    premier: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+    laliga: '🇪🇸',
+    bundesliga: '🇩🇪',
+    seriea: '🇮🇹',
+    ligue1: '🇫🇷'
+  };
+  return icons[league] || '⚽';
+}
+
+// ========== 深色/浅色模式切换 ==========
+function toggleDarkMode() {
+  var body = document.body;
+  var isDark = body.classList.toggle('light-mode');
+  var text = $('#dark-mode-text');
+  if (text) text.textContent = isDark ? '浅色模式' : '深色模式';
+  closeSidebar();
+}
+
+// ========== 隐藏设置入口：长按版本号 3 秒 ==========
+var _versionEl = $('#sidebar-version');
+var _longPressTimer = null;
+
+if (_versionEl) {
+  _versionEl.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    _longPressTimer = setTimeout(function() {
+      openSidebarSettings();
+    }, 3000);
+  });
+  _versionEl.addEventListener('mouseup', function() { clearTimeout(_longPressTimer); });
+  _versionEl.addEventListener('mouseleave', function() { clearTimeout(_longPressTimer); });
+  _versionEl.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    _longPressTimer = setTimeout(function() {
+      openSidebarSettings();
+    }, 3000);
+  }, { passive: false });
+  _versionEl.addEventListener('touchend', function() { clearTimeout(_longPressTimer); });
+  _versionEl.addEventListener('touchcancel', function() { clearTimeout(_longPressTimer); });
+}
+
+function openSidebarSettings() {
+  var sp = $('#sidebar-settings');
+  if (sp) sp.classList.add('open');
+  loadSettings();
+}
+
+var _sidebarSettingsClose = $('#sidebar-settings-close');
+if (_sidebarSettingsClose) _sidebarSettingsClose.addEventListener('click', function() {
+  var sp = $('#sidebar-settings');
+  if (sp) sp.classList.remove('open');
+});
+
+// 设置加载和保存（侧边栏隐藏面板）
+function loadSettings() {
+  var apiKey = localStorage.getItem('wc_api_key') || '';
+  var apiEl = $('#api-key'); if (apiEl) apiEl.value = apiKey;
+  if (apiKey) { var s = $('#save-status'); if (s) { s.textContent = '已配置 API Key'; s.style.color = 'var(--success)'; } }
+  var footballStatus = $('#football-save-status'); if (footballStatus) { footballStatus.textContent = '比分数据自动实时更新，无需配置'; footballStatus.style.color = 'var(--success)'; }
+}
+
+var _saveSettings = $('#save-settings');
+if (_saveSettings) _saveSettings.addEventListener('click', function() {
+  var apiKey = $('#api-key').value.trim();
+  localStorage.setItem('wc_api_key', apiKey);
+  var status = $('#save-status');
+  if (apiKey) { status.textContent = '保存成功！现在可以去「AI 聊球」页面聊天了'; status.style.color = 'var(--success)'; }
+  else { status.textContent = '请填写 API Key'; status.style.color = 'var(--warning)'; }
+});
+
 // ========== 赛事数据页面（含子导航） ==========
 let eventSubView = 'schedule';
 let currentPhase = 'group';
@@ -1039,28 +1193,12 @@ if (chatSend) chatSend.addEventListener('click', sendMessage);
 if (chatInput) chatInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
 $$('.quick-ask').forEach(btn => { btn.addEventListener('click', () => { if (chatInput) { chatInput.value = btn.dataset.q; sendMessage(); } }); });
 
-// ========== 设置页面 ==========
-function loadSettings() {
-  var apiKey = localStorage.getItem('wc_api_key') || '';
-  var apiEl = $('#api-key'); if (apiEl) apiEl.value = apiKey;
-  if (apiKey) { var s = $('#save-status'); if (s) { s.textContent = '已配置 API Key'; s.style.color = 'var(--success)'; } }
-  var footballStatus = $('#football-save-status'); if (footballStatus) { footballStatus.textContent = '比分数据自动实时更新，无需配置'; footballStatus.style.color = 'var(--success)'; }
-}
-
-var _saveSettings = $('#save-settings');
-if (_saveSettings) _saveSettings.addEventListener('click', () => {
-  var apiKey = $('#api-key').value.trim();
-  localStorage.setItem('wc_api_key', apiKey);
-  var status = $('#save-status');
-  if (apiKey) { status.textContent = '保存成功！现在可以去「AI 聊球」页面聊天了'; status.style.color = 'var(--success)'; }
-  else { status.textContent = '请填写 API Key'; status.style.color = 'var(--warning)'; }
-});
+// ========== 设置（已移至侧边栏隐藏面板） ==========
 
 // ========== 初始化 ==========
 function init() {
   renderEventPage();
   renderTeamsPage();
-  loadSettings();
   fetchLiveScores();
 }
 
