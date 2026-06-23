@@ -109,6 +109,11 @@ $$('.tab').forEach(tab => {
     } else {
       if (tab.dataset.tab === 'event') renderEventPage();
       if (tab.dataset.tab === 'teams') renderTeamsPage();
+      if (tab.dataset.tab === 'predict') {
+        // 切换到预测tab时先验证再渲染
+        if (typeof verifyAllPredictions === 'function') verifyAllPredictions();
+        if (typeof renderPredictPage === 'function') renderPredictPage();
+      }
       // 如果当前不是世界杯联赛，在新 tab 页面上也显示覆盖层
       if (currentLeague !== 'worldcup') {
         var config = LEAGUE_CONFIG[currentLeague];
@@ -1332,9 +1337,14 @@ async function fetchLiveScores() {
     if (currentLeague === 'mengchao') {
       if (activePage && activePage.id === 'page-event') renderMengchaoEventPage();
       if (activePage && activePage.id === 'page-teams') renderMengchaoTeamsPage();
+      if (activePage && activePage.id === 'page-predict') renderMengchaoPredictPage();
     } else {
       if (activePage && activePage.id === 'page-event') renderEventPage();
       if (activePage && activePage.id === 'page-teams') renderTeamsPage();
+      if (activePage && activePage.id === 'page-predict') {
+        if (typeof verifyAllPredictions === 'function') verifyAllPredictions();
+        if (typeof renderPredictPage === 'function') renderPredictPage();
+      }
     }
     if (updated > 0) showRefreshIndicator('已更新 ' + updated + ' 条数据');
   } catch (err) {
