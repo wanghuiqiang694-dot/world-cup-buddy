@@ -1717,18 +1717,35 @@ function renderMengchaoNextPredict() {
     var homeStanding = MENGCHAO_STANDINGS.find(function(s) { return s.team === m.home; });
     var awayStanding = MENGCHAO_STANDINGS.find(function(s) { return s.team === m.away; });
 
-    // 简单预测逻辑：基于排名和积分
-    var homePts = homeStanding ? homeStanding.pts : 0;
-    var awayPts = awayStanding ? awayStanding.pts : 0;
-    var homeRank = homeStanding ? homeStanding.rank : 6;
-    var awayRank = awayStanding ? awayStanding.rank : 6;
-    var homeStr = MENGCHAO_TEAMS[m.home] ? MENGCHAO_TEAMS[m.home].strength : 60;
-    var awayStr = MENGCHAO_TEAMS[m.away] ? MENGCHAO_TEAMS[m.away].strength : 60;
-    var homeScore = Math.round(homeStr / 20 + (12 - homeRank) * 0.15);
-    var awayScore = Math.round(awayStr / 20 + (12 - awayRank) * 0.15);
-    if (homeScore === awayScore) homeScore += (homePts >= awayPts ? 1 : 0);
-    if (homeScore < 0) homeScore = 0;
-    if (awayScore < 0) awayScore = 0;
+    // 基于历史数据的预测：业余联赛场均约1.5球/队
+    // 用实际场均进球作为基础，结合排名差异微调
+    var homeGPG = homeStanding ? (homeStanding.gf / Math.max(homeStanding.played, 1)) : 1.2;
+    var awayGPG = awayStanding ? (awayStanding.gf / Math.max(awayStanding.played, 1)) : 1.2;
+    var homeGAPG = homeStanding ? (homeStanding.ga / Math.max(homeStanding.played, 1)) : 1.2;
+    var awayGAPG = awayStanding ? (awayStanding.ga / Math.max(awayStanding.played, 1)) : 1.2;
+    // 主队预测进球 = 主队攻击力与客队防守力的平均，加主场优势0.3
+    var homeExp = (homeGPG + awayGAPG) / 2 + 0.3;
+    // 客队预测进球 = 客队攻击力与主队防守力的平均
+    var awayExp = (awayGPG + homeGAPG) / 2;
+    // 排名差距微调（差距越大优势越大，但幅度小）
+    var rankDiff = awayRank - homeRank;
+    homeExp += rankDiff * 0.05;
+    awayExp -= rankDiff * 0.05;
+    // 蒙超整体进球率偏低，限制最大期望值
+    homeExp = Math.min(homeExp, 2.8);
+    awayExp = Math.min(awayExp, 2.5);
+    // 用确定性方式取整：四舍五入到最近的0.5再取整，保证结果稳定
+    var homeScore = Math.round(homeExp);
+    var awayScore = Math.round(awayExp);
+    // 避免出现0:0预测太无聊，如果双方期望都很低，给实力强的一方加1
+    if (homeScore === 0 && awayScore === 0) {
+      if (homeExp >= awayExp) homeScore = 1; else awayScore = 1;
+    }
+    // 总进球不超过4
+    if (homeScore + awayScore > 4) {
+      if (homeScore >= awayScore) homeScore = Math.max(homeScore - 1, 1);
+      else awayScore = Math.max(awayScore - 1, 1);
+    }
     var wdl = homeScore > awayScore ? '主胜' : (homeScore < awayScore ? '客胜' : '平');
     var totalGoals = homeScore + awayScore;
     var goalsLabel = totalGoals <= 2 ? '小2.5球' : '大2.5球';
@@ -1775,6 +1792,12 @@ function renderMengchaoNextPredict() {
     html += '<span class="' + sitClass + '">' + situation + '</span>';
     html += '</div>';
   });
+  html += '</div>';
+
+  // 业余联赛预测免责提示
+  html += '<div class="mengchao-predict-disclaimer">';
+  html += '<div class="mengchao-disclaimer-icon">ℹ️</div>';
+  html += '<div class="mengchao-disclaimer-text">蒙超联赛为业余赛事，球员状态波动较大，比赛结果难以准确预估。以上预测仅基于历史数据与积分排名，仅供参考娱乐，不构成任何建议。</div>';
   html += '</div>';
 
   return html;
@@ -1870,6 +1893,12 @@ function renderMengchaoHistoryPredict() {
   html += '<div class="mengchao-insight-detail">' + topScorer.team + ' · ' + topScorer.goals + '球</div>';
   html += '</div>';
 
+  html += '</div>';
+
+  // 业余联赛预测免责提示
+  html += '<div class="mengchao-predict-disclaimer">';
+  html += '<div class="mengchao-disclaimer-icon">ℹ️</div>';
+  html += '<div class="mengchao-disclaimer-text">蒙超联赛为业余赛事，球员表现较难预估，以上数据与预测仅供观赛参考，请理性看待。</div>';
   html += '</div>';
 
   return html;
