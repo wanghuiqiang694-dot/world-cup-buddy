@@ -582,10 +582,14 @@ function getTomorrowStr() {
 // ========== 赛果验证 ==========
 function verifyPrediction(matchId) {
   var pred = getSinglePrediction(matchId);
-  if (!pred || pred.result) return pred;
+  if (!pred) return pred;
 
   var matchResult = MATCH_RESULTS[matchId];
   if (!matchResult || !matchResult.score) return pred;
+
+  // 如果已有验证结果，检查比分是否变化（比如比赛从进行中到结束，比分可能更新）
+  // 比分变化时需要重新验证
+  if (pred.result && pred.result.score === matchResult.score) return pred;
 
   var actualScore = matchResult.score;
   var parts = actualScore.split(':');
@@ -794,8 +798,8 @@ function renderHistoryPredictions() {
 // ========== 预测卡片（今日/近期） ==========
 function renderPredictCard(match) {
   var pred = getSinglePrediction(match.id);
-  // 重新验证，确保命中状态是最新的
-  if (pred && pred.result) {
+  // 每次渲染都重新验证，确保命中状态与最新 MATCH_RESULTS 同步
+  if (pred) {
     var rePred = verifyPrediction(match.id);
     if (rePred) pred = rePred;
   }
@@ -1078,14 +1082,8 @@ function initPredictSystem() {
   // 渲染预测页面
   renderPredictPage();
 
-  // Tab切换时刷新
-  var predictTab = document.querySelector('.tab[data-tab="predict"]');
-  if (predictTab) {
-    predictTab.addEventListener('click', function() {
-      verifyAllPredictions();
-      renderPredictPage();
-    });
-  }
+  // 注意：Tab切换时的预测渲染由 app.js 的统一 tab 切换逻辑处理
+  // 不再在这里绑定 predictTab 的 click 监听器，避免与 app.js 竞争
 }
 
 // 在数据加载完成后初始化
