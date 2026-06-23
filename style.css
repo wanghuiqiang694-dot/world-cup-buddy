@@ -199,8 +199,8 @@ body {
   text-overflow: ellipsis;
 }
 
-/* 联赛未开放标记 */
-.sidebar-item[data-league]:not([data-league="worldcup"]) .sidebar-item-text::after {
+/* 联赛未开放标记（蒙超和世界杯已开放，不显示） */
+.sidebar-item[data-league]:not([data-league="worldcup"]):not([data-league="mengchao"]) .sidebar-item-text::after {
   content: '即将开放';
   font-size: 10px;
   color: var(--text-dim);
@@ -1820,3 +1820,20 @@ body.light-mode .mengchao-team-card { box-shadow:0 1px 4px rgba(0,0,0,0.06); }
 .wdl-draw { background:rgba(251,191,36,0.15); color:#f59e0b; }
 .mengchao-predict-score { font-size:18px; font-weight:800; color:var(--accent-light); }
 .mengchao-predict-goals { font-size:13px; padding:4px 10px; border-radius:8px; background:rgba(99,102,241,0.1); color:var(--accent-light); }
+
+/* ========== 蒙超赛事规则页 ========== */
+.mengchao-rules-wrap { padding:0 4px; }
+.mengchao-rules-subtitle { font-size:13px; color:var(--text-dim); margin-bottom:16px; text-align:center; }
+.mengchao-rules-card { background:var(--card-bg); border-radius:var(--radius); padding:16px; margin-bottom:12px; border:1px solid var(--card-border); }
+.mengchao-rules-card-title { font-size:16px; font-weight:700; margin-bottom:12px; padding-bottom:8px; border-bottom:1px solid var(--card-border); }
+.mengchao-rules-text { font-size:13px; line-height:1.8; color:var(--text-secondary); }
+.mengchao-rules-section { margin-bottom:12px; }
+.mengchao-rules-section:last-child { margin-bottom:0; }
+.mengchao-rules-label { font-size:14px; font-weight:600; margin-bottom:6px; color:var(--accent-light); }
+.mengchao-rules-list { display:flex; flex-direction:column; gap:8px; }
+.mengchao-rules-item { display:flex; align-items:center; gap:8px; font-size:13px; line-height:1.6; color:var(--text-secondary); }
+.mengchao-rules-item-icon { display:inline-flex; align-items:center; justify-content:center; min-width:28px; height:24px; border-radius:6px; font-size:12px; font-weight:700; }
+.mengchao-rules-item-icon.win { background:rgba(34,197,94,0.15); color:#22c55e; }
+.mengchao-rules-item-icon.draw { background:rgba(251,191,36,0.15); color:#f59e0b; }
+.mengchao-rules-item-icon.lose { background:rgba(239,68,68,0.15); color:#ef4444; }
+.mengchao-rules-bullet { color:var(--accent-light); font-size:16px; line-height:1; min-width:12px; }
