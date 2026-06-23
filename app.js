@@ -166,13 +166,17 @@ function switchLeague(league) {
   var config = LEAGUE_CONFIG[league];
 
   if (league === 'worldcup') {
-    // 切换回世界杯：移除覆盖层，恢复页面内容
+    // 切换回世界杯：移除覆盖层，恢复所有页面内容
     updateHeaderForLeague(config);
-    removeLeagueComingSoon();
+    removeLeagueComingSoon(true);
+    // 重新渲染所有页面（包括预测页）
+    renderEventPage();
+    renderTeamsPage();
+    if (typeof renderPredictPage === 'function') renderPredictPage();
   } else if (league === 'mengchao') {
     // 蒙超：使用真实数据渲染
     updateHeaderForLeague(config);
-    removeLeagueComingSoon();
+    removeLeagueComingSoon(true);
     renderMengchaoPage();
   } else {
     // 其他联赛 - 显示即将开放覆盖层
@@ -210,12 +214,7 @@ function removeLeagueComingSoon(skipRerender) {
   $$('.league-coming-soon-overlay').forEach(function(el) {
     el.remove();
   });
-  // 切换回世界杯时重新渲染所有页面内容
-  if (!skipRerender) {
-    renderEventPage();
-    renderTeamsPage();
-    // 预测页面会在切换tab时自动渲染
-  }
+  // 注意：不再自动渲染世界杯页面，由 switchLeague 自行分发渲染
 }
 
 function getLeagueIcon(league) {
@@ -1386,14 +1385,17 @@ function renderMengchaoEventPage() {
   html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'standings' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'standings\')">积分榜</a>';
   html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'schedule' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'schedule\')">赛程</a>';
   html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'scorers' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'scorers\')">射手榜</a>';
+  html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'rules' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'rules\')">赛事规则</a>';
   html += '</div>';
 
   if (mengchaoSubView === 'standings') {
     html += renderMengchaoStandings();
   } else if (mengchaoSubView === 'schedule') {
     html += renderMengchaoSchedule();
-  } else {
+  } else if (mengchaoSubView === 'scorers') {
     html += renderMengchaoScorers();
+  } else {
+    html += renderMengchaoRules();
   }
 
   content.innerHTML = html;
@@ -1402,6 +1404,69 @@ function renderMengchaoEventPage() {
 function switchMengchaoSubView(view) {
   mengchaoSubView = view;
   renderMengchaoEventPage();
+}
+
+function renderMengchaoRules() {
+  var html = '';
+  html += '<div class="mengchao-rules-wrap">';
+
+  // 赛事概述
+  html += '<div class="mengchao-section-title">2026 内蒙古足球超级联赛</div>';
+  html += '<div class="mengchao-rules-subtitle">蒙牛2026内蒙古自治区足球超级联赛（简称"蒙超联赛"）</div>';
+
+  html += '<div class="mengchao-rules-card">';
+  html += '<div class="mengchao-rules-card-title">赛事概述</div>';
+  html += '<div class="mengchao-rules-text">蒙超联赛是内蒙古自治区男子足球最高水平比赛，由内蒙古自治区体育局和各盟市人民政府主办，各盟市体育行政部门、内蒙古足球协会承办。本赛季由蒙牛集团总冠名，全区12个盟市代表队参赛，总跨度4个月，将展开79场精彩角逐。</div>';
+  html += '</div>';
+
+  // 赛制
+  html += '<div class="mengchao-rules-card">';
+  html += '<div class="mengchao-rules-card-title">赛制安排</div>';
+  html += '<div class="mengchao-rules-section">';
+  html += '<div class="mengchao-rules-label">第一阶段 · 常规赛</div>';
+  html += '<div class="mengchao-rules-text">5月15日至7月26日，12支球队采用主客场单循环赛制，每周六、日进行一轮，共计11轮66场比赛。常规赛排名前8的球队晋级淘汰赛。</div>';
+  html += '</div>';
+  html += '<div class="mengchao-rules-section">';
+  html += '<div class="mengchao-rules-label">第二阶段 · 淘汰赛</div>';
+  html += '<div class="mengchao-rules-text">8月1日至9月12日进行淘汰赛。四分之一决赛和半决赛采用主客场双回合淘汰制，冠亚军决赛采用单场决胜制决出冠军。</div>';
+  html += '</div>';
+  html += '</div>';
+
+  // 积分规则
+  html += '<div class="mengchao-rules-card">';
+  html += '<div class="mengchao-rules-card-title">积分规则</div>';
+  html += '<div class="mengchao-rules-list">';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-item-icon win">胜</span><span>胜一场得 <strong>3</strong> 分</span></div>';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-item-icon draw">平</span><span>平一场得 <strong>1</strong> 分</span></div>';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-item-icon lose">负</span><span>负一场得 <strong>0</strong> 分</span></div>';
+  html += '</div>';
+  html += '<div class="mengchao-rules-text">积分相同时的排名依据（依次）：1. 净胜球；2. 进球数；3. 相互比赛积分；4. 相互比赛净胜球；5. 抽签。</div>';
+  html += '</div>';
+
+  // 参赛资格
+  html += '<div class="mengchao-rules-card">';
+  html += '<div class="mengchao-rules-card-title">参赛资格</div>';
+  html += '<div class="mengchao-rules-list">';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>各盟市组成代表队参赛，每个盟市仅一支球队</span></div>';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>球员年龄16-40周岁，男性，具有中国国籍</span></div>';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>需拥有内蒙古户籍（落户时间2025年1月1日前）或社保缴纳证明</span></div>';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>外省球员至多报名5人，不允许外援</span></div>';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>中超/中甲/中乙一线队及U系列精英梯队球员不允许参赛</span></div>';
+  html += '</div>';
+  html += '</div>';
+
+  // 特殊规则
+  html += '<div class="mengchao-rules-card">';
+  html += '<div class="mengchao-rules-card-title">特殊规则</div>';
+  html += '<div class="mengchao-rules-list">';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>2026年常规赛排名前6名的盟市，将获得2027年蒙超常规赛6个主场资格</span></div>';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>主教练须持有亚足联/中国足协B级或以上教练员执照</span></div>';
+  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>球员报名确定后当年度不得变更代表队</span></div>';
+  html += '</div>';
+  html += '</div>';
+
+  html += '</div>';
+  return html;
 }
 
 function renderMengchaoStandings() {
