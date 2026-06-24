@@ -8,10 +8,10 @@ const FILE_PATH = 'data/fan-actions.json';
 
 function getApiUrl() { return `https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`; }
 function getToken(context) {
-  // 优先从 CF 环境变量取，fallback 到硬编码的 base64 编码值
+  // 从 Cloudflare Pages 环境变量读取 GITHUB_TOKEN
   if (context && context.env && context.env.GITHUB_TOKEN) return context.env.GITHUB_TOKEN;
-  // 备用：从 base64 解码（GitHub secret scanning 不会匹配 base64）
-  return atob('Z2hwXzFMODFNVVpvU2FsSUtfbThWZ1JRNFp0ZmlCSHpsUXk0Mlh1cWc=');
+  // 无环境变量时返回空，功能不可用
+  return '';
 }
 
 function authHeaders(context) {
