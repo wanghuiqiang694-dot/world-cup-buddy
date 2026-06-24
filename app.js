@@ -582,9 +582,21 @@ function resolvePosLabel(pos) {
   if (!pos) return '待定';
   if (pos.endsWith('L')) return '待定';
   if (pos.startsWith('R') || pos.startsWith('QF-') || pos.startsWith('SF-')) return '待定';
-  if (pos.startsWith('3rd-')) return pos.split('-')[1] + '组第3';
-  const match = pos.match(/^([A-L])([1-4])$/);
-  if (match) return match[1] + '组第' + match[2];
+  // 尝试附带实际球队名
+  var standings = getGroupStandingsRanked();
+  if (pos.startsWith('3rd-')) {
+    var group3 = pos.split('-')[1];
+    var gs3 = standings[group3];
+    if (gs3 && gs3.length >= 3) return group3 + '组第3(' + gs3[2] + ')';
+    return pos.split('-')[1] + '组第3';
+  }
+  var match = pos.match(/^([A-L])([1-4])$/);
+  if (match) {
+    var gs = standings[match[1]];
+    var rankIdx = parseInt(match[2]) - 1;
+    if (gs && gs[rankIdx]) return match[1] + '组第' + match[2] + '(' + gs[rankIdx] + ')';
+    return match[1] + '组第' + match[2];
+  }
   return pos;
 }
 
@@ -657,9 +669,14 @@ function renderMatchCard(m) {
       '<div class="match-venue">' + m.venue + '</div></div>';
   }
   if (isPlaceholder) {
+    // 尽可能显示已解析的球队名，未确定的显示占位标签
+    const homeDisplay = homeTeam ? (flagImg(homeTeam, 'team-card-flag') + ' ' + homeTeam) : homeLabel;
+    const awayDisplay = awayTeam ? (awayTeam + ' ' + flagImg(awayTeam, 'team-card-flag')) : awayLabel;
+    const homeClass = homeTeam ? 'match-team' : 'match-team match-team-placeholder';
+    const awayClass = awayTeam ? 'match-team' : 'match-team match-team-placeholder';
     return '<div class="match-card match-card-placeholder">' +
       '<div class="match-meta"><span>' + m.date + ' ' + m.time + '</span><span>' + phaseLabel + '</span></div>' +
-      '<div class="match-vs"><span class="match-team match-team-placeholder">' + homeLabel + '</span><span class="vs">VS</span><span class="match-team match-team-placeholder">' + awayLabel + '</span></div>' +
+      '<div class="match-vs"><span class="' + homeClass + '">' + homeDisplay + '</span><span class="vs">VS</span><span class="' + awayClass + '">' + awayDisplay + '</span></div>' +
       '<div class="match-venue">' + m.venue + '</div></div>';
   }
   if (isToday) {
