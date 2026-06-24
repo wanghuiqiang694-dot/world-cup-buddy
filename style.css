@@ -588,11 +588,11 @@ body {
   box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.1);
   position: relative;
 }
-/* 实时比赛呼吸灯 - 绿色脉冲圆点 */
-.match-today.is-live::before {
+/* 实时比赛呼吸灯 - 绿色脉冲圆点（右下角） */
+.match-today.is-live::after {
   content: '';
   position: absolute;
-  top: 12px;
+  bottom: 12px;
   right: 14px;
   width: 8px;
   height: 8px;
