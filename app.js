@@ -1253,9 +1253,10 @@ async function fetchLiveScores() {
           const data = await resp.json();
           const events = data.event || data.events || [];
           if (events.length === 0) return null;
-          // 找到2026世界杯的比赛
-          const wcEvent = events.find(e => e.idLeague === '4429' && e.strSeason === '2026') || events.find(e => e.idLeague === '4429') || events[0];
-          return { match, evt: wcEvent };
+          // 严格过滤：只接受2026世界杯赛事，避免历史比赛数据污染
+          const wc2026Event = events.find(e => e.idLeague === '4429' && e.strSeason === '2026');
+          if (!wc2026Event) return null;
+          return { match, evt: wc2026Event };
         } catch (e) { return null; }
       });
       
@@ -1270,15 +1271,7 @@ async function fetchLiveScores() {
           MATCH_RESULTS[match.id] = { score: homeScore + ':' + awayScore, events: isFinished ? '比赛结束' : isLive ? '进行中' : '', live: isLive };
           updated++;
         }
-        if (evt.strTime) {
-          const [h, m] = evt.strTime.split(':').map(Number);
-          const bjH = (h + 8) % 24;
-          const bjDate = new Date(evt.dateEvent + 'T00:00:00Z');
-          if (h + 8 >= 24) bjDate.setDate(bjDate.getDate() + 1);
-          const dateStr = bjDate.getFullYear() + '-' + String(bjDate.getMonth() + 1).padStart(2, '0') + '-' + String(bjDate.getDate()).padStart(2, '0');
-          const timeStr = String(bjH).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-          if (match.date !== dateStr || match.time !== timeStr) { match.date = dateStr; match.time = timeStr; updated++; }
-        }
+        // 不更新比赛日期 - searchevents可能返回历史比赛导致日期错乱
       }
       // 批次间延迟1秒
       if (i + 2 < toQuery.length) await new Promise(r => setTimeout(r, 1000));
