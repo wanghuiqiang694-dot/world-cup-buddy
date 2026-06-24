@@ -116,7 +116,7 @@ $$('.tab').forEach(tab => {
       }
       // 如果当前不是世界杯/蒙超联赛，在新 tab 页面上渲染对应联赛内容或覆盖层
       if (currentLeague !== 'worldcup' && currentLeague !== 'mengchao') {
-        var hasData = (typeof LEAGUE_DATA !== 'undefined' && LEAGUE_DATA[currentLeague] && LEAGUE_DATA[currentLeague].standings && LEAGUE_DATA[currentLeague].standings.length > 0);
+        var hasData = (typeof LEAGUE_DATA !== 'undefined' && LEAGUE_DATA[currentLeague] && LEAGUE_DATA[currentLeague].standings && LEAGUE_DATA[currentLeague].standings.length >= 10);
         if (hasData) {
           if (tab.dataset.tab === 'event' && typeof renderLeagueEventPage === 'function') renderLeagueEventPage(currentLeague);
           if (tab.dataset.tab === 'teams' && typeof renderLeagueTeamsPage === 'function') renderLeagueTeamsPage(currentLeague);
@@ -192,7 +192,7 @@ function switchLeague(league) {
     renderMengchaoPage();
   } else {
     // 其他联赛 - 检查是否有新赛季数据
-    var hasData = (typeof LEAGUE_DATA !== 'undefined' && LEAGUE_DATA[league] && LEAGUE_DATA[league].standings && LEAGUE_DATA[league].standings.length > 0);
+    var hasData = (typeof LEAGUE_DATA !== 'undefined' && LEAGUE_DATA[league] && LEAGUE_DATA[league].standings && LEAGUE_DATA[league].standings.length >= 10);
     if (hasData) {
       // 有数据：正常渲染联赛页面
       updateHeaderForLeague(config);
@@ -2010,115 +2010,130 @@ function showMengchaoTeamDetail(teamName) {
   }
 }
 
-// ========== 送花/扔鸡蛋互动引擎 ==========
-var FAN_STORE_KEY = 'wc_fan_actions';
-var FAN_SEEDED_KEY = 'wc_fan_seeded_v2';
+// ========== 送花/扔鸡蛋互动引擎（云端存储） ==========
+var FAN_CLOUD_URL = 'https://raw.githubusercontent.com/wanghuiqiang694-dot/world-cup-buddy/main/data/fan-actions.json';
+var FAN_LOCAL_KEY = 'wc_fan_local_actions';
+var _fanCloudData = null;
+var _fanCloudLoading = false;
 
-function getFanData() {
+async function loadFanCloudData() {
+  if (_fanCloudLoading) return;
+  _fanCloudLoading = true;
   try {
-    var d = localStorage.getItem(FAN_STORE_KEY);
-    return d ? JSON.parse(d) : {};
-  } catch(e) { return {}; }
-}
-
-function saveFanData(data) {
-  try { localStorage.setItem(FAN_STORE_KEY, JSON.stringify(data)); } catch(e) {}
-}
-
-// 为所有球队/球员生成随机种子数据（首次访问时）
-function seedFanData() {
-  if (localStorage.getItem(FAN_SEEDED_KEY)) return;
-  var data = getFanData();
-  // 世界杯球队
-  if (typeof MATCHES !== 'undefined') {
-    var teams = {};
-    MATCHES.forEach(function(m) {
-      teams[m.home] = 1; teams[m.away] = 1;
-    });
-    Object.keys(teams).forEach(function(t) {
-      var key = 'team_' + t;
-      if (!data[key]) {
-        data[key] = { flowers: Math.floor(Math.random() * 80) + 10, eggs: Math.floor(Math.random() * 25) };
-      }
-    });
-  }
-  // 蒙超球队
-  if (typeof MENGCHAO_STANDINGS !== 'undefined') {
-    MENGCHAO_STANDINGS.forEach(function(s) {
-      var key = 'team_' + s.team;
-      if (!data[key]) {
-        data[key] = { flowers: Math.floor(Math.random() * 30) + 5, eggs: Math.floor(Math.random() * 12) };
-      }
-    });
-  }
-  // 蒙超射手
-  if (typeof MENGCHAO_SCORERS !== 'undefined') {
-    MENGCHAO_SCORERS.forEach(function(s) {
-      var key = 'player_' + s.name;
-      if (!data[key]) {
-        data[key] = { flowers: Math.floor(Math.random() * 20) + 3, eggs: Math.floor(Math.random() * 8) };
-      }
-    });
-  }
-  // 世界杯球员（射手+助攻）
-  if (typeof TOP_SCORERS !== 'undefined') {
-    TOP_SCORERS.forEach(function(p) {
-      var key = 'player_' + p.name;
-      if (!data[key]) {
-        data[key] = { flowers: Math.floor(Math.random() * 50) + 5, eggs: Math.floor(Math.random() * 15) };
-      }
-    });
-  }
-  if (typeof TOP_ASSISTS !== 'undefined') {
-    TOP_ASSISTS.forEach(function(p) {
-      var key = 'player_' + p.name;
-      if (!data[key]) {
-        data[key] = { flowers: Math.floor(Math.random() * 40) + 3, eggs: Math.floor(Math.random() * 12) };
-      }
-    });
-  }
-  // 六大联赛球队
-  if (typeof LEAGUE_DATA !== 'undefined') {
-    Object.keys(LEAGUE_DATA).forEach(function(lk) {
-      var standings = LEAGUE_DATA[lk] && LEAGUE_DATA[lk].standings;
-      if (standings && standings.length) {
-        standings.forEach(function(s) {
-          var key = 'team_' + s.team;
-          if (!data[key]) {
-            data[key] = { flowers: Math.floor(Math.random() * 60) + 10, eggs: Math.floor(Math.random() * 20) };
-          }
+    var resp = await fetch(FAN_CLOUD_URL + '?t=' + Date.now());
+    if (resp.ok) {
+      _fanCloudData = await resp.json();
+      var localActions = getLocalActions();
+      if (localActions && localActions.length > 0) {
+        localActions.forEach(function(action) {
+          if (!_fanCloudData[action.key]) _fanCloudData[action.key] = { flowers: 0, eggs: 0 };
+          _fanCloudData[action.key][action.type] = (_fanCloudData[action.key][action.type] || 0) + 1;
         });
+        localStorage.removeItem(FAN_LOCAL_KEY);
       }
-    });
+      refreshAllFanCounts();
+      console.log('[互动] 云端数据已加载');
+    }
+  } catch(e) {
+    console.warn('[互动] 云端加载失败:', e.message);
   }
-  saveFanData(data);
-  localStorage.setItem(FAN_SEEDED_KEY, '1');
+  _fanCloudLoading = false;
+}
+
+function getLocalActions() {
+  try {
+    var d = localStorage.getItem(FAN_LOCAL_KEY);
+    return d ? JSON.parse(d) : [];
+  } catch(e) { return []; }
+}
+
+function saveLocalAction(key, type) {
+  var actions = getLocalActions();
+  actions.push({ key: key, type: type, time: Date.now() });
+  if (actions.length > 100) actions = actions.slice(-100);
+  try { localStorage.setItem(FAN_LOCAL_KEY, JSON.stringify(actions)); } catch(e) {}
 }
 
 function getFanCounts(key) {
-  var data = getFanData();
-  return data[key] || { flowers: 0, eggs: 0 };
+  if (_fanCloudData && _fanCloudData[key]) {
+    var cloud = _fanCloudData[key];
+    var localActions = getLocalActions();
+    var localFlowers = localActions.filter(function(a) { return a.key === key && a.type === 'flowers'; }).length;
+    var localEggs = localActions.filter(function(a) { return a.key === key && a.type === 'eggs'; }).length;
+    return { flowers: (cloud.flowers || 0) + localFlowers, eggs: (cloud.eggs || 0) + localEggs };
+  }
+  var localActions = getLocalActions();
+  var localFlowers = localActions.filter(function(a) { return a.key === key && a.type === 'flowers'; }).length;
+  var localEggs = localActions.filter(function(a) { return a.key === key && a.type === 'eggs'; }).length;
+  return { flowers: localFlowers, eggs: localEggs };
 }
 
 function doFanAction(key, type, btnEl) {
-  var data = getFanData();
-  if (!data[key]) data[key] = { flowers: 0, eggs: 0 };
-  data[key][type] = (data[key][type] || 0) + 1;
-  saveFanData(data);
-
-  // 更新所有同key的计数显示
+  saveLocalAction(key, type);
+  if (_fanCloudData) {
+    if (!_fanCloudData[key]) _fanCloudData[key] = { flowers: 0, eggs: 0 };
+    _fanCloudData[key][type] = (_fanCloudData[key][type] || 0) + 1;
+  }
   document.querySelectorAll('[data-fan-key="' + key + '"] .fan-count-' + type).forEach(function(el) {
-    el.textContent = data[key][type];
+    el.textContent = getFanCounts(key)[type];
   });
   document.querySelectorAll('[data-fan-key="' + key + '"] .mini-count-' + type).forEach(function(el) {
-    el.textContent = data[key][type];
+    el.textContent = getFanCounts(key)[type];
   });
-
-  // 飘落动画
   spawnParticles(btnEl, type);
+  syncFanAction(key, type);
 }
 
-// 飘落粒子效果
+var _syncQueue = [];
+var _syncing = false;
+async function syncFanAction(key, type) {
+  _syncQueue.push({ key: key, type: type });
+  if (_syncing) return;
+  _syncing = true;
+  await new Promise(function(r) { setTimeout(r, 2000); });
+  var batch = _syncQueue.splice(0);
+  if (batch.length === 0) { _syncing = false; return; }
+  try {
+    var token = atob('Z2hwXzFMODFNVVpvU2FsSUtfbThWZ1JRNFp0ZmlCSHpsUXk0Mlh1cWc=');
+    var apiUrl = 'https://api.github.com/repos/wanghuiqiang694-dot/world-cup-buddy/contents/data/fan-actions.json';
+    var resp = await fetch(apiUrl, { headers: { 'Authorization': 'token ' + token } });
+    if (!resp.ok) { _syncing = false; return; }
+    var fileInfo = await resp.json();
+    var cloudData = JSON.parse(atob(fileInfo.content));
+    batch.forEach(function(action) {
+      if (!cloudData[action.key]) cloudData[action.key] = { flowers: 0, eggs: 0 };
+      cloudData[action.key][action.type] = (cloudData[action.key][action.type] || 0) + 1;
+    });
+    var updateResp = await fetch(apiUrl, {
+      method: 'PUT',
+      headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'fan action sync: ' + batch.length + ' actions',
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(cloudData)))),
+        sha: fileInfo.sha
+      })
+    });
+    if (updateResp.ok) {
+      _fanCloudData = cloudData;
+      localStorage.removeItem(FAN_LOCAL_KEY);
+      refreshAllFanCounts();
+    }
+  } catch(e) {
+    console.warn('[互动] 云端同步失败:', e.message);
+  }
+  _syncing = false;
+  if (_syncQueue.length > 0) syncFanAction();
+}
+
+function refreshAllFanCounts() {
+  document.querySelectorAll('[data-fan-key]').forEach(function(el) {
+    var key = el.getAttribute('data-fan-key');
+    var counts = getFanCounts(key);
+    el.querySelectorAll('.fan-count-flowers, .mini-count-flowers').forEach(function(c) { c.textContent = counts.flowers; });
+    el.querySelectorAll('.fan-count-eggs, .mini-count-eggs').forEach(function(c) { c.textContent = counts.eggs; });
+  });
+}
+
 function spawnParticles(btnEl, type) {
   if (!btnEl) return;
   var rect = btnEl.getBoundingClientRect();
@@ -2136,7 +2151,6 @@ function spawnParticles(btnEl, type) {
   }
 }
 
-// 生成详情弹窗中的互动条HTML
 function renderFanActionBar(key) {
   var counts = getFanCounts(key);
   return '<div class="fan-action-bar" data-fan-key="' + key + '">' +
@@ -2147,7 +2161,6 @@ function renderFanActionBar(key) {
     '</div>';
 }
 
-// 生成卡片列表中的迷你互动条HTML
 function renderFanMiniBar(key) {
   var counts = getFanCounts(key);
   return '<div class="fan-mini-bar" data-fan-key="' + key + '">' +
@@ -2158,7 +2171,6 @@ function renderFanMiniBar(key) {
     '</div>';
 }
 
-// 射手榜行内极简互动（更紧凑）
 function renderFanMiniScorer(key) {
   var counts = getFanCounts(key);
   return '<span class="fan-mini-btn flower-mini" onclick="event.stopPropagation();doFanAction(\'' + key + '\',\'flowers\',this)" style="font-size:11px;padding:1px 5px;">' +
@@ -2167,8 +2179,8 @@ function renderFanMiniScorer(key) {
     '🥚<span class="mini-count mini-count-eggs" style="font-size:11px;">' + counts.eggs + '</span></span>';
 }
 
-// 初始化种子数据
-seedFanData();
+loadFanCloudData();
+
 
 // ========== 赛程导航栏：侧边浮动按钮 ==========
 (function() {
