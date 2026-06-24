@@ -97,9 +97,10 @@ function renderLeagueStandings(leagueKey, data, config, color) {
     var gd = s.gf - s.ga;
     var gdClass = gd > 0 ? 'mengchao-gd-pos' : (gd < 0 ? 'mengchao-gd-neg' : '');
     var rankClass = '';
-    if (s.rank <= qualifyLine) rankClass = 'mengchao-rank-top';
-    else if (europaLine > 0 && s.rank <= europaLine) rankClass = 'mengchao-rank-mid';
-    else if (s.rank > data.standings.length - 3) rankClass = 'mengchao-rank-bot';
+    if (s.rank <= qualifyLine) rankClass = 'league-zone-top';
+    else if (europaLine > 0 && s.rank <= europaLine) rankClass = 'league-zone-mid';
+    else if (s.rank > data.standings.length - 3) rankClass = 'league-zone-out';
+    else rankClass = 'league-zone-out';
 
     html += '<tr class="' + rankClass + '">';
     html += '<td class="mengchao-rank">' + s.rank + '</td>';
@@ -124,7 +125,7 @@ function renderLeagueStandings(leagueKey, data, config, color) {
   } else {
     html += '<span class="mengchao-legend-item"><span class="mengchao-legend-dot" style="background:#22c55e"></span>欧冠区</span>';
     if (europaLine > qualifyLine) {
-      html += '<span class="mengchao-legend-item"><span class="mengchao-legend-dot" style="background:#3b82f6"></span>欧联区</span>';
+    html += '<span class="mengchao-legend-item"><span class="mengchao-legend-dot" style="background:#f59e0b"></span>欧联区</span>';
     }
   }
   html += '<span class="mengchao-legend-item"><span class="mengchao-legend-dot" style="background:#ef4444"></span>降级区</span>';
@@ -232,6 +233,7 @@ function renderLeagueMatchCard(m, data, color, isToday) {
     var parts = result.score.split(':');
     var hg = parseInt(parts[0]) || 0, ag = parseInt(parts[1]) || 0;
     var homeWin = hg > ag, awayWin = ag > hg, draw = hg === ag;
+    var logHtml = typeof generateMatchLog === 'function' ? generateMatchLog(m.home, m.away, hg, ag, draw) : '';
     return '<div class="match-card match-finished">' +
       '<div class="match-meta"><span>' + m.date + ' ' + (m.time || '') + '</span><span>' + round + ' · 已结束</span></div>' +
       '<div class="match-vs match-vs-result">' +
@@ -239,14 +241,15 @@ function renderLeagueMatchCard(m, data, color, isToday) {
         '<span class="match-score-final"><span class="score-home' + (homeWin ? ' score-won' : '') + '">' + parts[0] + '</span><span class="score-sep">:</span><span class="score-away' + (awayWin ? ' score-won' : '') + '">' + parts[1] + '</span></span>' +
         '<span class="match-team' + (awayWin ? ' team-won' : (!draw ? ' team-lost' : '')) + '">' + m.away + '</span>' +
       '</div>' +
+      (logHtml ? '<div class="match-log">' + logHtml + '</div>' : '') +
       (m.venue ? '<div class="match-venue">' + m.venue + '</div>' : '') +
       '</div>';
   }
 
   if (isToday || isLive) {
     var score = result && result.score ? result.score : null;
-    var centerHtml = score ? '<span class="match-score-live">' + score + '</span>' : '<span class="match-live">' + (isLive ? '进行中' : '今天 ' + (m.time || '')) + '</span>';
-    return '<div class="match-card match-today">' +
+    var centerHtml = score ? '<span class="match-score-live' + (isLive ? ' score-updated' : '') + '">' + score + '</span>' : '<span class="match-live">' + (isLive ? '进行中' : '今天 ' + (m.time || '')) + '</span>';
+    return '<div class="match-card match-today' + (isLive ? ' is-live' : '') + '">' +
       '<div class="match-meta"><span>' + m.date + ' ' + (m.time || '') + '</span><span>' + round + (isLive ? ' · 进行中' : '') + '</span></div>' +
       '<div class="match-vs"><span class="match-team">' + m.home + '</span>' + centerHtml + '<span class="match-team">' + m.away + '</span></div>' +
       (m.venue ? '<div class="match-venue">' + m.venue + '</div>' : '') +
