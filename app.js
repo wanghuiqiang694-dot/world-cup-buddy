@@ -1281,6 +1281,8 @@ async function loadCloudData() {
 // ========== 初始化 ==========
 async function init() {
   await loadCloudData();
+  // 等待互动数据加载完成后再渲染（确保鲜花鸡蛋计数正确）
+  await loadFanCloudData();
   renderEventPage();
   renderTeamsPage();
   loadCachedResults();
@@ -2010,34 +2012,45 @@ function showMengchaoTeamDetail(teamName) {
   }
 }
 
-// ========== 送花/扔鸡蛋互动引擎（云端存储） ==========
-var FAN_CLOUD_URL = 'https://raw.githubusercontent.com/wanghuiqiang694-dot/world-cup-buddy/main/data/fan-actions.json';
+// ========== 送花/扔鸡蛋互动引擎（云端存储 v2） ==========
+// 通过 Cloudflare Pages Function 代理读写 GitHub 上的 fan-actions.json
+var FAN_API_URL = '/api/fan-actions';
 var FAN_LOCAL_KEY = 'wc_fan_local_actions';
 var _fanCloudData = null;
-var _fanCloudLoading = false;
 
+// 加载云端数据（在 init 之前调用，确保渲染时有数据）
 async function loadFanCloudData() {
-  if (_fanCloudLoading) return;
-  _fanCloudLoading = true;
   try {
-    var resp = await fetch(FAN_CLOUD_URL + '?t=' + Date.now());
+    var resp = await fetch(FAN_API_URL);
     if (resp.ok) {
       _fanCloudData = await resp.json();
+      // 合并本地未同步的操作
       var localActions = getLocalActions();
       if (localActions && localActions.length > 0) {
+        // 先本地合并，再尝试同步到云端
         localActions.forEach(function(action) {
           if (!_fanCloudData[action.key]) _fanCloudData[action.key] = { flowers: 0, eggs: 0 };
           _fanCloudData[action.key][action.type] = (_fanCloudData[action.key][action.type] || 0) + 1;
         });
-        localStorage.removeItem(FAN_LOCAL_KEY);
+        // 尝试把积压的本地操作同步到云端
+        try {
+          var syncResp = await fetch(FAN_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ actions: localActions })
+          });
+          if (syncResp.ok) {
+            _fanCloudData = await syncResp.json();
+            localStorage.removeItem(FAN_LOCAL_KEY);
+          }
+        } catch(e) {}
       }
       refreshAllFanCounts();
-      console.log('[互动] 云端数据已加载');
+      console.log('[互动] 云端数据已加载：' + Object.keys(_fanCloudData).length + ' 条');
     }
   } catch(e) {
     console.warn('[互动] 云端加载失败:', e.message);
   }
-  _fanCloudLoading = false;
 }
 
 function getLocalActions() {
@@ -2057,11 +2070,13 @@ function saveLocalAction(key, type) {
 function getFanCounts(key) {
   if (_fanCloudData && _fanCloudData[key]) {
     var cloud = _fanCloudData[key];
+    // 加上本地未同步的操作
     var localActions = getLocalActions();
     var localFlowers = localActions.filter(function(a) { return a.key === key && a.type === 'flowers'; }).length;
     var localEggs = localActions.filter(function(a) { return a.key === key && a.type === 'eggs'; }).length;
     return { flowers: (cloud.flowers || 0) + localFlowers, eggs: (cloud.eggs || 0) + localEggs };
   }
+  // 云端没数据时从本地操作计数
   var localActions = getLocalActions();
   var localFlowers = localActions.filter(function(a) { return a.key === key && a.type === 'flowers'; }).length;
   var localEggs = localActions.filter(function(a) { return a.key === key && a.type === 'eggs'; }).length;
@@ -2069,11 +2084,13 @@ function getFanCounts(key) {
 }
 
 function doFanAction(key, type, btnEl) {
+  // 立即更新内存数据
   saveLocalAction(key, type);
   if (_fanCloudData) {
     if (!_fanCloudData[key]) _fanCloudData[key] = { flowers: 0, eggs: 0 };
     _fanCloudData[key][type] = (_fanCloudData[key][type] || 0) + 1;
   }
+  // 立即更新所有同key的UI
   document.querySelectorAll('[data-fan-key="' + key + '"] .fan-count-' + type).forEach(function(el) {
     el.textContent = getFanCounts(key)[type];
   });
@@ -2081,50 +2098,43 @@ function doFanAction(key, type, btnEl) {
     el.textContent = getFanCounts(key)[type];
   });
   spawnParticles(btnEl, type);
+  // 异步同步到云端
   syncFanAction(key, type);
 }
 
+// 批量同步到云端（通过 Cloudflare Pages Function）
 var _syncQueue = [];
 var _syncing = false;
 async function syncFanAction(key, type) {
   _syncQueue.push({ key: key, type: type });
   if (_syncing) return;
   _syncing = true;
+  // 等待2秒收集更多操作
   await new Promise(function(r) { setTimeout(r, 2000); });
   var batch = _syncQueue.splice(0);
   if (batch.length === 0) { _syncing = false; return; }
   try {
-    var token = atob('Z2hwXzFMODFNVVpvU2FsSUtfbThWZ1JRNFp0ZmlCSHpsUXk0Mlh1cWc=');
-    var apiUrl = 'https://api.github.com/repos/wanghuiqiang694-dot/world-cup-buddy/contents/data/fan-actions.json';
-    var resp = await fetch(apiUrl, { headers: { 'Authorization': 'token ' + token } });
-    if (!resp.ok) { _syncing = false; return; }
-    var fileInfo = await resp.json();
-    var cloudData = JSON.parse(atob(fileInfo.content));
-    batch.forEach(function(action) {
-      if (!cloudData[action.key]) cloudData[action.key] = { flowers: 0, eggs: 0 };
-      cloudData[action.key][action.type] = (cloudData[action.key][action.type] || 0) + 1;
+    var resp = await fetch(FAN_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ actions: batch })
     });
-    var updateResp = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: { 'Authorization': 'token ' + token, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: 'fan action sync: ' + batch.length + ' actions',
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(cloudData)))),
-        sha: fileInfo.sha
-      })
-    });
-    if (updateResp.ok) {
-      _fanCloudData = cloudData;
+    if (resp.ok) {
+      _fanCloudData = await resp.json();
       localStorage.removeItem(FAN_LOCAL_KEY);
       refreshAllFanCounts();
+    } else {
+      console.warn('[互动] 同步失败: HTTP ' + resp.status);
     }
   } catch(e) {
-    console.warn('[互动] 云端同步失败:', e.message);
+    console.warn('[互动] 同步失败:', e.message);
   }
   _syncing = false;
+  // 队列中还有数据继续处理
   if (_syncQueue.length > 0) syncFanAction();
 }
 
+// 刷新页面上所有互动计数
 function refreshAllFanCounts() {
   document.querySelectorAll('[data-fan-key]').forEach(function(el) {
     var key = el.getAttribute('data-fan-key');
@@ -2134,6 +2144,7 @@ function refreshAllFanCounts() {
   });
 }
 
+// 飘落粒子效果
 function spawnParticles(btnEl, type) {
   if (!btnEl) return;
   var rect = btnEl.getBoundingClientRect();
@@ -2151,6 +2162,7 @@ function spawnParticles(btnEl, type) {
   }
 }
 
+// 生成详情弹窗中的互动条HTML
 function renderFanActionBar(key) {
   var counts = getFanCounts(key);
   return '<div class="fan-action-bar" data-fan-key="' + key + '">' +
@@ -2161,6 +2173,7 @@ function renderFanActionBar(key) {
     '</div>';
 }
 
+// 生成卡片列表中的迷你互动条HTML
 function renderFanMiniBar(key) {
   var counts = getFanCounts(key);
   return '<div class="fan-mini-bar" data-fan-key="' + key + '">' +
@@ -2171,6 +2184,7 @@ function renderFanMiniBar(key) {
     '</div>';
 }
 
+// 射手榜行内极简互动
 function renderFanMiniScorer(key) {
   var counts = getFanCounts(key);
   return '<span class="fan-mini-btn flower-mini" onclick="event.stopPropagation();doFanAction(\'' + key + '\',\'flowers\',this)" style="font-size:11px;padding:1px 5px;">' +
@@ -2179,7 +2193,6 @@ function renderFanMiniScorer(key) {
     '🥚<span class="mini-count mini-count-eggs" style="font-size:11px;">' + counts.eggs + '</span></span>';
 }
 
-loadFanCloudData();
 
 
 // ========== 赛程导航栏：侧边浮动按钮 ==========
