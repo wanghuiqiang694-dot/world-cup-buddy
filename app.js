@@ -101,26 +101,12 @@ $$('.tab').forEach(tab => {
     tab.classList.add('active');
     const target = $(`#page-${tab.dataset.tab}`);
     if (target) target.classList.add('active');
-    if (currentLeague === 'mengchao') {
-      // 蒙超：每个tab都走蒙超专属渲染
-      if (tab.dataset.tab === 'event') renderMengchaoEventPage();
-      else if (tab.dataset.tab === 'teams') renderMengchaoTeamsPage();
-      else if (tab.dataset.tab === 'predict') renderMengchaoPredictPage();
-    } else {
-      if (tab.dataset.tab === 'event') renderEventPage();
-      if (tab.dataset.tab === 'teams') renderTeamsPage();
-      if (tab.dataset.tab === 'predict') {
-        // 切换到预测tab时先验证再渲染
-        if (typeof verifyAllPredictions === 'function') verifyAllPredictions();
-        if (typeof renderPredictPage === 'function') renderPredictPage();
-      }
-      // 如果当前不是世界杯联赛，在新 tab 页面上也渲染对应联赛内容
-      if (currentLeague !== 'worldcup' && currentLeague !== 'mengchao') {
-        var config = LEAGUE_CONFIG[currentLeague];
-        if (tab.dataset.tab === 'event' && typeof renderLeagueEventPage === 'function') renderLeagueEventPage(currentLeague);
-        if (tab.dataset.tab === 'teams' && typeof renderLeagueTeamsPage === 'function') renderLeagueTeamsPage(currentLeague);
-        if (tab.dataset.tab === 'predict' && typeof renderLeaguePredictPage === 'function') renderLeaguePredictPage(currentLeague);
-      }
+    if (tab.dataset.tab === 'event') renderEventPage();
+    if (tab.dataset.tab === 'teams') renderTeamsPage();
+    // 如果当前不是世界杯联赛，在新 tab 页面上也显示覆盖层
+    if (currentLeague !== 'worldcup') {
+      var config = LEAGUE_CONFIG[currentLeague];
+      showLeagueComingSoon(currentLeague, config);
     }
   });
 });
@@ -155,7 +141,6 @@ var currentLeague = 'worldcup';
 
 var LEAGUE_CONFIG = {
   worldcup: { name: '2026 世界杯', subtitle: '美加墨世界杯 · 48队 · 12组 · 104场' },
-  mengchao: { name: '蒙超', subtitle: '2026 内蒙古足球超级联赛 · 12队 · 11轮' },
   champions: { name: '欧冠联赛', subtitle: '2025-26 赛季 · 欧洲冠军联赛' },
   premier: { name: '英超', subtitle: '2025-26 赛季 · 英格兰超级联赛' },
   laliga: { name: '西甲', subtitle: '2025-26 赛季 · 西班牙甲级联赛' },
@@ -173,23 +158,13 @@ function switchLeague(league) {
   var config = LEAGUE_CONFIG[league];
 
   if (league === 'worldcup') {
-    // 切换回世界杯：移除覆盖层，恢复所有页面内容
+    // 切换回世界杯：移除覆盖层，恢复页面内容
     updateHeaderForLeague(config);
-    removeLeagueComingSoon(true);
-    // 重新渲染所有页面（包括预测页）
-    renderEventPage();
-    renderTeamsPage();
-    if (typeof renderPredictPage === 'function') renderPredictPage();
-  } else if (league === 'mengchao') {
-    // 蒙超：使用真实数据渲染
-    updateHeaderForLeague(config);
-    removeLeagueComingSoon(true);
-    renderMengchaoPage();
+    removeLeagueComingSoon();
   } else {
-    // 其他联赛 - 使用通用联赛渲染
+    // 其他联赛 - 显示即将开放覆盖层
     updateHeaderForLeague(config);
-    removeLeagueComingSoon(true);
-    if (typeof renderLeaguePage === 'function') renderLeaguePage(league);
+    showLeagueComingSoon(league, config);
   }
   closeSidebar();
 }
@@ -222,13 +197,20 @@ function removeLeagueComingSoon(skipRerender) {
   $$('.league-coming-soon-overlay').forEach(function(el) {
     el.remove();
   });
-  // 注意：不再自动渲染世界杯页面，由 switchLeague 自行分发渲染
+  // 切换回世界杯时重新渲染当前页面内容
+  if (!skipRerender) {
+    var activeTab = document.querySelector('.tab.active');
+    if (activeTab) {
+      var tabName = activeTab.dataset.tab;
+      if (tabName === 'event') renderEventPage();
+      if (tabName === 'teams') renderTeamsPage();
+    }
+  }
 }
 
 function getLeagueIcon(league) {
   var icons = {
     worldcup: '🏆',
-    mengchao: '🐎',
     champions: '🇪🇺',
     premier: '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
     laliga: '🇪🇸',
@@ -242,11 +224,9 @@ function getLeagueIcon(league) {
 // ========== 深色/浅色模式切换 ==========
 function toggleDarkMode() {
   var body = document.body;
-  var isLight = body.classList.toggle('light-mode');
+  var isDark = body.classList.toggle('light-mode');
   var text = $('#dark-mode-text');
-  if (text) text.textContent = isLight ? '浅色模式' : '深色模式';
-  var icon = document.querySelector('#dark-mode-text') ? document.querySelector('#dark-mode-text').previousElementSibling : null;
-  if (icon) icon.textContent = isLight ? '☀️' : '🌙';
+  if (text) text.textContent = isDark ? '浅色模式' : '深色模式';
   closeSidebar();
 }
 
@@ -285,22 +265,10 @@ if (_sidebarSettingsClose) _sidebarSettingsClose.addEventListener('click', funct
   if (sp) sp.classList.remove('open');
 });
 
-// 设置加载和保存（侧边栏隐藏面板）
+// 设置加载（侧边栏隐藏面板）
 function loadSettings() {
-  var apiKey = localStorage.getItem('wc_api_key') || '';
-  var apiEl = $('#api-key'); if (apiEl) apiEl.value = apiKey;
-  if (apiKey) { var s = $('#save-status'); if (s) { s.textContent = '已配置 API Key'; s.style.color = 'var(--success)'; } }
   var footballStatus = $('#football-save-status'); if (footballStatus) { footballStatus.textContent = '比分数据自动实时更新，无需配置'; footballStatus.style.color = 'var(--success)'; }
 }
-
-var _saveSettings = $('#save-settings');
-if (_saveSettings) _saveSettings.addEventListener('click', function() {
-  var apiKey = $('#api-key').value.trim();
-  localStorage.setItem('wc_api_key', apiKey);
-  var status = $('#save-status');
-  if (apiKey) { status.textContent = '保存成功！现在可以去「AI 聊球」页面聊天了'; status.style.color = 'var(--success)'; }
-  else { status.textContent = '请填写 API Key'; status.style.color = 'var(--warning)'; }
-});
 
 // ========== 赛事数据页面（含子导航） ==========
 let eventSubView = 'schedule';
@@ -386,12 +354,22 @@ function renderGroupSchedule() {
     else if (s === 'upcoming') upcomingM.push(m);
     else finishedM.push(m);
   });
-  // 按时间排序
+  // 排序
   const sortByTime = (a, b) => (a.date + 'T' + a.time).localeCompare(b.date + 'T' + b.time);
-  todayM.sort(sortByTime);
+  // 今日：已完赛排上方正序，未完赛排下方正序
+  todayM.sort((a, b) => {
+    const aResult = MATCH_RESULTS[a.id];
+    const bResult = MATCH_RESULTS[b.id];
+    const aFinished = aResult && aResult.score && !aResult.live;
+    const bFinished = bResult && bResult.score && !bResult.live;
+    if (aFinished && !bFinished) return -1;
+    if (!aFinished && bFinished) return 1;
+    return sortByTime(a, b);
+  });
   tomorrowM.sort(sortByTime);
   upcomingM.sort(sortByTime);
-  finishedM.sort((a, b) => (b.date + 'T' + b.time).localeCompare(a.date + 'T' + b.time));
+  // 已结束：倒序（最新已完结在前），点击跳转时优先看到最近的
+  finishedM.sort((a, b) => (b.date + 'T' + b.time).localeCompare(a.date + 'T' + a.time));
   html += renderScheduleSections(todayM, tomorrowM, upcomingM, finishedM);
   return html;
 }
@@ -414,9 +392,17 @@ function renderKnockoutSchedule() {
     else finishedM.push(m);
   });
 
-  // 按时间排序
+  // 排序
   const sortByTime = (a, b) => (a.date + 'T' + (a.time || '')).localeCompare(b.date + 'T' + (b.time || ''));
-  todayM.sort(sortByTime);
+  todayM.sort((a, b) => {
+    const aResult = MATCH_RESULTS[a.id];
+    const bResult = MATCH_RESULTS[b.id];
+    const aFinished = aResult && aResult.score && !aResult.live;
+    const bFinished = bResult && bResult.score && !bResult.live;
+    if (aFinished && !bFinished) return -1;
+    if (!aFinished && bFinished) return 1;
+    return sortByTime(a, b);
+  });
   tomorrowM.sort(sortByTime);
   upcomingM.sort(sortByTime);
   finishedM.sort((a, b) => (b.date + 'T' + (b.time || '')).localeCompare(a.date + 'T' + (b.time || '')));
@@ -587,17 +573,19 @@ function getMatchStatus(m) {
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.getFullYear() + '-' + String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + String(tomorrow.getDate()).padStart(2, '0');
   const result = MATCH_RESULTS[m.id];
-  if (result && result.score) {
-    if (result.live) return 'today';
-    return 'finished';
-  }
-  if (m.date === todayStr) {
-    const hoursSince = (now - matchDate) / (1000 * 60 * 60);
-    if (hoursSince > 3 && !(result && result.score)) return 'finished';
-    return 'today';
-  }
+  const hasScore = result && result.score;
+  const isLive = hasScore && result.live;
+  // 今日比赛：当天所有比赛都算今日，不管是否完赛
+  if (m.date === todayStr) return 'today';
+  // 明日
   if (m.date === tomorrowStr) return 'tomorrow';
-  if (matchDate < now) return 'finished';
+  // 过去有比分的 → 已结束
+  if (hasScore && !isLive) return 'finished';
+  // 过去无比分但已过3小时 → 已结束
+  if (matchDate < now) {
+    const hoursSince = (now - matchDate) / (1000 * 60 * 60);
+    if (hoursSince > 3) return 'finished';
+  }
   return 'upcoming';
 }
 
@@ -894,7 +882,6 @@ function renderTeamsPage() {
         html += '<div class="team-card-name">' + t.name + '</div>';
         html += '<div class="team-card-group">' + t.group + '组</div>';
         html += '<span class="team-card-tag ' + strengthClass(t.strength) + '">' + t.label + '</span>';
-        html += renderFanMiniBar('team_' + t.name);
         html += '</div>';
       });
       html += '</div>';
@@ -943,7 +930,6 @@ function openTeamDetail(team) {
     html += '<div class="detail-tags">';
     if (h.titles > 0) html += '<span class="detail-tag">' + h.titles + '届冠军</span>';
     html += '<span class="detail-tag">核心: ' + h.star + '</span><span class="detail-tag">主帅: ' + h.coach + '</span></div>';
-    html += renderFanActionBar('team_' + team);
     html += '<div class="detail-section" style="padding-bottom:8px;"><div class="detail-section-title">历史最佳</div><div style="font-size:14px;color:var(--text);">' + h.best + '</div></div>';
     if (h.recent && h.recent.length > 0) {
       html += '<div class="detail-section"><div class="detail-section-title">近四届战绩</div><table class="history-table"><thead><tr><th>年份</th><th>成绩</th><th>详情</th></tr></thead><tbody>';
@@ -954,7 +940,6 @@ function openTeamDetail(team) {
     }
   } else {
     html += '<div class="detail-info-grid"><div class="detail-info-item"><div class="detail-info-value">0</div><div class="detail-info-label">夺冠次数</div></div><div class="detail-info-item"><div class="detail-info-value">0</div><div class="detail-info-label">参赛次数</div></div><div class="detail-info-item"><div class="detail-info-value">' + (tv ? formatValue(tv) : '-') + '</div><div class="detail-info-label">球队身价</div></div><div class="detail-info-item"><div class="detail-info-value">' + s + '</div><div class="detail-info-label">实力评分</div></div></div>';
-    html += renderFanActionBar('team_' + team);
     html += '<div class="detail-section"><div class="detail-section-title">历史最佳</div><div style="font-size:14px;color:var(--text);">首次参赛！创造历史的开始</div></div>';
   }
 
@@ -1047,13 +1032,8 @@ function switchToEventTab() {
   if (eventTab) eventTab.classList.add('active');
   const eventPage = $('#page-event');
   if (eventPage) eventPage.classList.add('active');
-  if (currentLeague === 'mengchao') {
-    mengchaoSubView = 'standings';
-    renderMengchaoEventPage();
-  } else {
-    eventSubView = 'schedule';
-    renderEventPage();
-  }
+  eventSubView = 'schedule';
+  renderEventPage();
 }
 
 function resultClass(result) {
@@ -1120,9 +1100,6 @@ function openPlayerDetail(team, playerName, type) {
     html += '</div>';
   }
 
-  // 送花/扔鸡蛋
-  html += renderFanActionBar('player_' + playerName);
-
   // 荣誉
   if (player.honors && player.honors.length > 0) {
     html += '<div class="detail-section"><div class="detail-section-title">主要荣誉</div>';
@@ -1164,227 +1141,26 @@ if (_playerModal) _playerModal.addEventListener('click', e => { if (e.target ===
 
 // ========== 赔率分析（已替换为预测系统，见 predict.js）==========
 
-// ========== AI 聊天 ==========
-const chatMessages = $('#chat-messages');
-const chatInput = $('#chat-input');
-const chatSend = $('#chat-send');
-
-function buildWorldCupContext() {
-  let ctx = '你是2026美加墨世界杯观赛搭子，一个专业又热情的足球评论员。以下是本届世界杯数据：\n\n';
-  ctx += '分组情况：\n';
-  for (const [g, teams] of Object.entries(GROUPS)) ctx += g + '组：' + teams.join('、') + '\n';
-  ctx += '\n赛程（北京时间）：\n';
-  MATCHES.forEach(m => { ctx += m.date + ' ' + m.time + ' ' + m.group + '组第' + m.round + '轮 ' + m.home + 'vs' + m.away + '（' + m.venue + '）\n'; });
-  ctx += '\n规则：48队分12组，每组前2名+8个最好第3名晋级32强淘汰赛。揭幕战6月12日03:00墨西哥vs南非，决赛7月20日。';
-  ctx += '\n\n请用中文回答，语气热情专业，像球迷之间聊天一样。回答控制在200字以内。';
-  return ctx;
-}
-
-async function callQianfan(userMsg) {
-  const apiKey = localStorage.getItem('wc_api_key');
-  if (!apiKey) return '请先在「设置」页面配置百度千帆的 API Key，然后就能和我聊球了！';
-  try {
-    const body = { model: 'ernie-4.0-8k', messages: [{ role: 'user', content: buildWorldCupContext() }, ...getChatHistory(), { role: 'user', content: userMsg }], temperature: 0.8, top_p: 0.9 };
-    const res = await fetch('https://qianfan.baidubce.com/v2/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey }, body: JSON.stringify(body) });
-    const data = await res.json();
-    if (data.error_code) return '接口出错：' + (data.error_msg || '未知错误') + '。如果是不支持该模型，可在代码中换成 ernie-3.5-8k。';
-    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || '抱歉，我没想好怎么说...';
-  } catch (err) {
-    console.error('千帆 API 调用失败:', err);
-    return '网络请求失败，请检查网络连接后重试。';
-  }
-}
-
-function getChatHistory() {
-  if (!chatMessages) return [];
-  const history = [];
-  chatMessages.querySelectorAll('.msg').forEach(m => {
-    const text = m.querySelector('.msg-bubble').textContent;
-    if (m.classList.contains('user')) history.push({ role: 'user', content: text });
-    else if (!text.includes('观赛搭子')) history.push({ role: 'assistant', content: text });
-  });
-  return history.slice(-6);
-}
-
-function addMessage(text, isUser) {
-  if (!chatMessages) return;
-  const div = document.createElement('div');
-  div.className = 'msg ' + (isUser ? 'user' : 'bot');
-  div.innerHTML = '<div class="msg-bubble">' + text + '</div>';
-  chatMessages.appendChild(div);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function addTypingIndicator() {
-  if (!chatMessages) return;
-  const div = document.createElement('div');
-  div.className = 'msg bot';
-  div.id = 'typing';
-  div.innerHTML = '<div class="msg-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>';
-  chatMessages.appendChild(div);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function removeTypingIndicator() { const el = $('#typing'); if (el) el.remove(); }
-
-async function sendMessage() {
-  if (!chatInput || !chatSend) return;
-  const text = chatInput.value.trim();
-  if (!text) return;
-  chatInput.value = '';
-  addMessage(text, true);
-  chatSend.disabled = true;
-  addTypingIndicator();
-  const reply = await callQianfan(text);
-  removeTypingIndicator();
-  addMessage(reply, false);
-  chatSend.disabled = false;
-  if (chatInput) chatInput.focus();
-}
-
-if (chatSend) chatSend.addEventListener('click', sendMessage);
-if (chatInput) chatInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-$$('.quick-ask').forEach(btn => { btn.addEventListener('click', () => { if (chatInput) { chatInput.value = btn.dataset.q; sendMessage(); } }); });
 
 // ========== 设置（已移至侧边栏隐藏面板） ==========
 
-// ========== 云端数据加载 ==========
-var DATA_BASE_URL = 'https://raw.githubusercontent.com/wanghuiqiang694-dot/world-cup-buddy/main/data';
-var _cloudDataLoaded = false;
-
-async function loadCloudData() {
-  try {
-    var wcResp = await fetch(DATA_BASE_URL + '/worldcup.json?t=' + Date.now());
-    if (wcResp.ok) {
-      var wcData = await wcResp.json();
-      if (wcData.matches && wcData.matches.length > 0) {
-        // 用云端数据覆盖硬编码的 MATCHES 和 MATCH_RESULTS
-        MATCHES.length = 0;
-        wcData.matches.forEach(function(m) { MATCHES.push(m); });
-        Object.keys(MATCH_RESULTS).forEach(function(k) { if (typeof k === 'number' || !isNaN(k)) delete MATCH_RESULTS[k]; });
-        Object.assign(MATCH_RESULTS, wcData.matchResults || {});
-        console.log('[云端] 世界杯数据已加载：' + MATCHES.length + ' 场赛程，' + Object.keys(MATCH_RESULTS).length + ' 条比分');
-      }
-    }
-
-    var mcResp = await fetch(DATA_BASE_URL + '/mengchao.json?t=' + Date.now());
-    if (mcResp.ok) {
-      var mcData = await mcResp.json();
-      if (mcData.teams) {
-        Object.keys(MENGCHAO_TEAMS).forEach(function(k) { delete MENGCHAO_TEAMS[k]; });
-        Object.assign(MENGCHAO_TEAMS, mcData.teams);
-      }
-      if (mcData.standings) {
-        MENGCHAO_STANDINGS.length = 0;
-        mcData.standings.forEach(function(s) { MENGCHAO_STANDINGS.push(s); });
-      }
-      if (mcData.matches) {
-        MENGCHAO_MATCHES.length = 0;
-        mcData.matches.forEach(function(m) { MENGCHAO_MATCHES.push(m); });
-      }
-      if (mcData.scorers) {
-        MENGCHAO_SCORERS.length = 0;
-        mcData.scorers.forEach(function(s) { MENGCHAO_SCORERS.push(s); });
-      }
-      console.log('[云端] 蒙超数据已加载：' + MENGCHAO_MATCHES.length + ' 场赛程');
-    }
-
-    // 加载各联赛数据
-    var leagueKeys = ['champions', 'premier', 'laliga', 'bundesliga', 'seriea', 'ligue1'];
-    for (var li = 0; li < leagueKeys.length; li++) {
-      try {
-        var lk = leagueKeys[li];
-        var lResp = await fetch(DATA_BASE_URL + '/' + lk + '.json?t=' + Date.now());
-        if (lResp.ok) {
-          var lData = await lResp.json();
-          if (typeof LEAGUE_DATA !== 'undefined' && LEAGUE_DATA[lk]) {
-            if (lData.matches) LEAGUE_DATA[lk].matches = lData.matches;
-            if (lData.standings) LEAGUE_DATA[lk].standings = lData.standings;
-            if (lData.matchResults) LEAGUE_DATA[lk].matchResults = lData.matchResults;
-            if (lData.lastUpdated) LEAGUE_DATA[lk].lastUpdated = lData.lastUpdated;
-            console.log('[云端] ' + lk + ' 数据已加载：' + (lData.matches ? lData.matches.length : 0) + ' 场赛程');
-          }
-        }
-      } catch (le) {
-        console.warn('[云端] ' + leagueKeys[li] + ' 数据加载失败:', le.message);
-      }
-    }
-
-    _cloudDataLoaded = true;
-    // 缓存到 localStorage 供离线使用
-    try {
-      localStorage.setItem('wc_cloud_data_time', Date.now().toString());
-      localStorage.setItem('wc_cloud_matches', JSON.stringify(MATCHES));
-      localStorage.setItem('wc_cloud_results', JSON.stringify(MATCH_RESULTS));
-      localStorage.setItem('wc_cloud_mengchao', JSON.stringify({
-        teams: MENGCHAO_TEAMS,
-        standings: MENGCHAO_STANDINGS,
-        matches: MENGCHAO_MATCHES,
-        scorers: MENGCHAO_SCORERS
-      }));
-      // 缓存各联赛数据
-      if (typeof LEAGUE_DATA !== 'undefined') {
-        var leagueKeys = ['champions', 'premier', 'laliga', 'bundesliga', 'seriea', 'ligue1'];
-        leagueKeys.forEach(function(lk) {
-          try { localStorage.setItem('wc_cloud_' + lk, JSON.stringify(LEAGUE_DATA[lk])); } catch (e) {}
-        });
-      }
-    } catch (e) {}
-    showRefreshIndicator('数据已从云端同步');
-  } catch (err) {
-    console.warn('[云端] 数据加载失败，使用缓存/硬编码数据：', err.message);
-    // 尝试从 localStorage 缓存恢复
-    try {
-      var cached = localStorage.getItem('wc_cloud_matches');
-      if (cached) {
-        var cachedMatches = JSON.parse(cached);
-        if (cachedMatches.length > 0) {
-          MATCHES.length = 0;
-          cachedMatches.forEach(function(m) { MATCHES.push(m); });
-        }
-      }
-      var cachedResults = localStorage.getItem('wc_cloud_results');
-      if (cachedResults) Object.assign(MATCH_RESULTS, JSON.parse(cachedResults));
-      var cachedMC = localStorage.getItem('wc_cloud_mengchao');
-      if (cachedMC) {
-        var mc = JSON.parse(cachedMC);
-        if (mc.teams) Object.assign(MENGCHAO_TEAMS, mc.teams);
-        if (mc.standings) { MENGCHAO_STANDINGS.length = 0; mc.standings.forEach(function(s) { MENGCHAO_STANDINGS.push(s); }); }
-        if (mc.matches) { MENGCHAO_MATCHES.length = 0; mc.matches.forEach(function(m) { MENGCHAO_MATCHES.push(m); }); }
-        if (mc.scorers) { MENGCHAO_SCORERS.length = 0; mc.scorers.forEach(function(s) { MENGCHAO_SCORERS.push(s); }); }
-      }
-      console.log('[缓存] 已从 localStorage 恢复数据');
-      // 恢复联赛缓存
-      var leagueKeys = ['champions', 'premier', 'laliga', 'bundesliga', 'seriea', 'ligue1'];
-      leagueKeys.forEach(function(lk) {
-        try {
-          var cachedL = localStorage.getItem('wc_cloud_' + lk);
-          if (cachedL && typeof LEAGUE_DATA !== 'undefined' && LEAGUE_DATA[lk]) {
-            var ld = JSON.parse(cachedL);
-            if (ld.matches) LEAGUE_DATA[lk].matches = ld.matches;
-            if (ld.standings) LEAGUE_DATA[lk].standings = ld.standings;
-            if (ld.matchResults) LEAGUE_DATA[lk].matchResults = ld.matchResults;
-          }
-        } catch (e3) {}
-      });
-    } catch (e2) {}
-  }
-}
-
 // ========== 初始化 ==========
-async function init() {
-  // 先加载云端数据，再渲染页面
-  await loadCloudData();
+function init() {
+  loadCachedResults();
   renderEventPage();
   renderTeamsPage();
-  fetchLiveScores();
+  // 先从云端JSON加载完整比分数据，再启动实时更新
+  loadCloudScores().then(() => fetchLiveScores());
 }
 
 init();
 
-// ========== 实时比分 API ==========
+// ========== 实时比分：优先从云端JSON加载 + searchevents实时更新 ==========
 const LIVE_REFRESH_INTERVAL = 60 * 1000;
 let liveRefreshTimer = null;
+
+// 云端比分数据URL（由 GitHub Actions 自动更新）
+const SCORES_JSON_URL = 'https://raw.githubusercontent.com/wanghuiqiang694-dot/world-cup-buddy/main/data/worldcup.json';
 
 const TEAM_EN_MAP = {
   '墨西哥': 'Mexico', '南非': 'South Africa', '韩国': 'South Korea', '捷克': 'Czech Republic',
@@ -1413,79 +1189,117 @@ function findChineseTeam(enName) {
   return null;
 }
 
-async function fetchLiveScores() {
+/**
+ * 第一步：从云端 worldcup.json 加载基准比分数据
+ * 这是由 GitHub Actions 使用 searchevents 逐场查询生成的完整数据
+ * 解决了 eventsday.php 免费版每天只返回3条的截断问题
+ */
+async function loadCloudScores() {
   loadCachedResults();
   try {
-    const lastFetch = localStorage.getItem('wc_last_fetch');
-    const isFirstLoad = !lastFetch || Date.now() - parseInt(lastFetch) > 6 * 60 * 60 * 1000;
-    const dates = [];
-    const now = new Date();
-    if (isFirstLoad) {
-      const start = new Date('2026-06-11T00:00:00Z');
-      const end = new Date('2026-06-29T00:00:00Z');
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) dates.push(d.toISOString().slice(0, 10));
-    } else {
-      for (let i = -3; i <= 3; i++) {
-        const d = new Date(now); d.setDate(d.getDate() + i);
-        const ds = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-        if (ds >= '2026-06-11' && ds <= '2026-06-28') dates.push(ds);
-      }
-    }
-    const allEvents = [];
-    const batchSize = 5;
-    for (let i = 0; i < dates.length; i += batchSize) {
-      const batch = dates.slice(i, i + batchSize);
-      const promises = batch.map(date => fetch('https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=' + date + '&l=4429').then(r => r.json()).then(data => (data.events || []).map(e => ({ ...e, _queryDate: date }))).catch(() => []));
-      const results = await Promise.all(promises);
-      results.forEach(events => allEvents.push(...events));
-    }
-    if (allEvents.length === 0) { console.log('TheSportsDB 暂无 2026 世界杯数据'); return; }
+    const resp = await fetch(SCORES_JSON_URL + '?t=' + Date.now());
+    if (!resp.ok) { console.warn('云端比分数据加载失败:', resp.status); return; }
+    const data = await resp.json();
+    const cloudResults = data.matchResults || {};
     let updated = 0;
-    allEvents.forEach(evt => {
-      const homeCN = findChineseTeam(evt.strHomeTeam);
-      const awayCN = findChineseTeam(evt.strAwayTeam);
-      if (!homeCN || !awayCN) return;
-      const match = MATCHES.find(m => m.home === homeCN && m.away === awayCN);
-      if (!match) return;
-      const homeScore = evt.intHomeScore, awayScore = evt.intAwayScore, status = evt.strStatus;
-      if (homeScore !== null && awayScore !== null && homeScore !== undefined && awayScore !== undefined) {
-        const isFinished = ['FT', 'AET', 'PEN'].includes(status);
-        const isLive = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'].includes(status);
-        MATCH_RESULTS[match.id] = { score: homeScore + ':' + awayScore, events: isFinished ? '比赛结束' : isLive ? '进行中' : '', live: isLive };
+    for (const [id, result] of Object.entries(cloudResults)) {
+      if (!MATCH_RESULTS[id] || MATCH_RESULTS[id].score !== result.score) {
+        MATCH_RESULTS[id] = result;
         updated++;
       }
-      if (evt.strTime) {
-        const [h, m] = evt.strTime.split(':').map(Number);
-        const bjH = (h + 8) % 24;
-        const bjDate = new Date(evt.dateEvent + 'T00:00:00Z');
-        if (h + 8 >= 24) bjDate.setDate(bjDate.getDate() + 1);
-        const dateStr = bjDate.getFullYear() + '-' + String(bjDate.getMonth() + 1).padStart(2, '0') + '-' + String(bjDate.getDate()).padStart(2, '0');
-        const timeStr = String(bjH).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-        if (match.date !== dateStr || match.time !== timeStr) { match.date = dateStr; match.time = timeStr; updated++; }
+    }
+    if (updated > 0) {
+      localStorage.setItem('wc_match_results', JSON.stringify(MATCH_RESULTS));
+      refreshActivePages();
+      showRefreshIndicator('云端数据更新 ' + updated + ' 条');
+    }
+  } catch (err) {
+    console.warn('云端比分数据加载失败:', err.message);
+  }
+}
+
+/**
+ * 第二步：使用 searchevents.php 查询当天进行中的比赛
+ * 仅查询当天和近期的比赛，大幅减少API调用
+ * searchevents 不会像 eventsday 那样截断结果
+ */
+async function fetchLiveScores() {
+  try {
+    const now = new Date();
+    const todayStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    
+    // 找出当天和明天的比赛
+    const tomorrow = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.getFullYear() + '-' + String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + String(tomorrow.getDate()).padStart(2, '0');
+    
+    const recentMatches = MATCHES.filter(m => m.date === todayStr || m.date === tomorrowStr);
+    if (recentMatches.length === 0) return;
+    
+    let updated = 0;
+    // 每次最多查询6场（避免过多API调用）
+    const toQuery = recentMatches.slice(0, 6);
+    
+    // 逐批查询（每批2个）
+    for (let i = 0; i < toQuery.length; i += 2) {
+      const batch = toQuery.slice(i, i + 2);
+      const promises = batch.map(async (match) => {
+        const homeEN = TEAM_EN_MAP[match.home];
+        const awayEN = TEAM_EN_MAP[match.away];
+        if (!homeEN || !awayEN) return null;
+        const query = homeEN + '_vs_' + awayEN;
+        try {
+          const resp = await fetch('https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e=' + encodeURIComponent(query));
+          if (!resp.ok) return null;
+          const data = await resp.json();
+          const events = data.event || data.events || [];
+          if (events.length === 0) return null;
+          // 找到2026世界杯的比赛
+          const wcEvent = events.find(e => e.idLeague === '4429' && e.strSeason === '2026') || events.find(e => e.idLeague === '4429') || events[0];
+          return { match, evt: wcEvent };
+        } catch (e) { return null; }
+      });
+      
+      const results = await Promise.all(promises);
+      for (const item of results) {
+        if (!item) continue;
+        const { match, evt } = item;
+        const homeScore = evt.intHomeScore, awayScore = evt.intAwayScore, status = evt.strStatus;
+        if (homeScore !== null && awayScore !== null && homeScore !== undefined && awayScore !== undefined) {
+          const isFinished = ['FT', 'AET', 'PEN'].includes(status);
+          const isLive = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'].includes(status);
+          MATCH_RESULTS[match.id] = { score: homeScore + ':' + awayScore, events: isFinished ? '比赛结束' : isLive ? '进行中' : '', live: isLive };
+          updated++;
+        }
+        if (evt.strTime) {
+          const [h, m] = evt.strTime.split(':').map(Number);
+          const bjH = (h + 8) % 24;
+          const bjDate = new Date(evt.dateEvent + 'T00:00:00Z');
+          if (h + 8 >= 24) bjDate.setDate(bjDate.getDate() + 1);
+          const dateStr = bjDate.getFullYear() + '-' + String(bjDate.getMonth() + 1).padStart(2, '0') + '-' + String(bjDate.getDate()).padStart(2, '0');
+          const timeStr = String(bjH).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+          if (match.date !== dateStr || match.time !== timeStr) { match.date = dateStr; match.time = timeStr; updated++; }
+        }
       }
-    });
+      // 批次间延迟1秒
+      if (i + 2 < toQuery.length) await new Promise(r => setTimeout(r, 1000));
+    }
+    
     localStorage.setItem('wc_match_results', JSON.stringify(MATCH_RESULTS));
     localStorage.setItem('wc_last_fetch', Date.now().toString());
-    // 根据当前联赛分发渲染，避免蒙超页面被世界杯覆盖
-    var activePage = document.querySelector('.page.active');
-    if (currentLeague === 'mengchao') {
-      if (activePage && activePage.id === 'page-event') renderMengchaoEventPage();
-      if (activePage && activePage.id === 'page-teams') renderMengchaoTeamsPage();
-      if (activePage && activePage.id === 'page-predict') renderMengchaoPredictPage();
-    } else {
-      if (activePage && activePage.id === 'page-event') renderEventPage();
-      if (activePage && activePage.id === 'page-teams') renderTeamsPage();
-      if (activePage && activePage.id === 'page-predict') {
-        if (typeof verifyAllPredictions === 'function') verifyAllPredictions();
-        if (typeof renderPredictPage === 'function') renderPredictPage();
-      }
+    if (updated > 0) {
+      refreshActivePages();
+      showRefreshIndicator('实时更新 ' + updated + ' 条');
     }
-    if (updated > 0) showRefreshIndicator('已更新 ' + updated + ' 条数据');
   } catch (err) {
-    console.warn('TheSportsDB 请求失败:', err.message);
-    showRefreshIndicator('更新失败，使用缓存数据');
+    console.warn('实时比分更新失败:', err.message);
   }
   if (!liveRefreshTimer) liveRefreshTimer = setInterval(fetchLiveScores, LIVE_REFRESH_INTERVAL);
+}
+
+function refreshActivePages() {
+  const activePage = document.querySelector('.page.active');
+  if (activePage && activePage.id === 'page-event') renderEventPage();
+  if (activePage && activePage.id === 'page-teams') renderTeamsPage();
 }
 
 function loadCachedResults() {
@@ -1505,808 +1319,3 @@ function showRefreshIndicator(text) {
   indicator.style.opacity = '1';
   setTimeout(function() { indicator.style.opacity = '0'; }, 3000);
 }
-
-// ========== 蒙超联赛渲染 ==========
-var mengchaoSubView = 'standings'; // standings | schedule | scorers
-
-function renderMengchaoPage() {
-  // 切换到蒙超时一次性渲染所有页面
-  renderMengchaoEventPage();
-  renderMengchaoTeamsPage();
-  renderMengchaoPredictPage();
-}
-
-function renderMengchaoEventPage() {
-  // 隐藏世界杯的子导航
-  var wcNav = $('#event-sub-nav');
-  if (wcNav) wcNav.innerHTML = '';
-
-  var content = $('#event-content');
-  if (!content) return;
-
-  var html = '';
-  html += '<div class="mengchao-sub-nav">';
-  html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'standings' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'standings\')">积分榜</a>';
-  html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'schedule' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'schedule\')">赛程</a>';
-  html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'scorers' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'scorers\')">射手榜</a>';
-  html += '<a class="mengchao-sub-btn' + (mengchaoSubView === 'rules' ? ' active' : '') + '" onclick="switchMengchaoSubView(\'rules\')">赛事规则</a>';
-  html += '</div>';
-
-  if (mengchaoSubView === 'standings') {
-    html += renderMengchaoStandings();
-  } else if (mengchaoSubView === 'schedule') {
-    html += renderMengchaoSchedule();
-  } else if (mengchaoSubView === 'scorers') {
-    html += renderMengchaoScorers();
-  } else {
-    html += renderMengchaoRules();
-  }
-
-  content.innerHTML = html;
-}
-
-function switchMengchaoSubView(view) {
-  mengchaoSubView = view;
-  renderMengchaoEventPage();
-}
-
-function renderMengchaoRules() {
-  var html = '';
-  html += '<div class="mengchao-rules-wrap">';
-
-  // 赛事概述
-  html += '<div class="mengchao-section-title">2026 内蒙古足球超级联赛</div>';
-  html += '<div class="mengchao-rules-subtitle">蒙牛2026内蒙古自治区足球超级联赛（简称"蒙超联赛"）</div>';
-
-  html += '<div class="mengchao-rules-card">';
-  html += '<div class="mengchao-rules-card-title">赛事概述</div>';
-  html += '<div class="mengchao-rules-text">蒙超联赛是内蒙古自治区男子足球最高水平比赛，由内蒙古自治区体育局和各盟市人民政府主办，各盟市体育行政部门、内蒙古足球协会承办。本赛季由蒙牛集团总冠名，全区12个盟市代表队参赛，总跨度4个月，将展开79场精彩角逐。</div>';
-  html += '</div>';
-
-  // 赛制
-  html += '<div class="mengchao-rules-card">';
-  html += '<div class="mengchao-rules-card-title">赛制安排</div>';
-  html += '<div class="mengchao-rules-section">';
-  html += '<div class="mengchao-rules-label">第一阶段 · 常规赛</div>';
-  html += '<div class="mengchao-rules-text">5月15日至7月26日，12支球队采用主客场单循环赛制，每周六、日进行一轮，共计11轮66场比赛。常规赛排名前8的球队晋级淘汰赛。</div>';
-  html += '</div>';
-  html += '<div class="mengchao-rules-section">';
-  html += '<div class="mengchao-rules-label">第二阶段 · 淘汰赛</div>';
-  html += '<div class="mengchao-rules-text">8月1日至9月12日进行淘汰赛。四分之一决赛和半决赛采用主客场双回合淘汰制，冠亚军决赛采用单场决胜制决出冠军。</div>';
-  html += '</div>';
-  html += '</div>';
-
-  // 积分规则
-  html += '<div class="mengchao-rules-card">';
-  html += '<div class="mengchao-rules-card-title">积分规则</div>';
-  html += '<div class="mengchao-rules-list">';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-item-icon win">胜</span><span>胜一场得 <strong>3</strong> 分</span></div>';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-item-icon draw">平</span><span>平一场得 <strong>1</strong> 分</span></div>';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-item-icon lose">负</span><span>负一场得 <strong>0</strong> 分</span></div>';
-  html += '</div>';
-  html += '<div class="mengchao-rules-text">积分相同时的排名依据（依次）：1. 净胜球；2. 进球数；3. 相互比赛积分；4. 相互比赛净胜球；5. 抽签。</div>';
-  html += '</div>';
-
-  // 参赛资格
-  html += '<div class="mengchao-rules-card">';
-  html += '<div class="mengchao-rules-card-title">参赛资格</div>';
-  html += '<div class="mengchao-rules-list">';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>各盟市组成代表队参赛，每个盟市仅一支球队</span></div>';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>球员年龄16-40周岁，男性，具有中国国籍</span></div>';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>需拥有内蒙古户籍（落户时间2025年1月1日前）或社保缴纳证明</span></div>';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>外省球员至多报名5人，不允许外援</span></div>';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>中超/中甲/中乙一线队及U系列精英梯队球员不允许参赛</span></div>';
-  html += '</div>';
-  html += '</div>';
-
-  // 特殊规则
-  html += '<div class="mengchao-rules-card">';
-  html += '<div class="mengchao-rules-card-title">特殊规则</div>';
-  html += '<div class="mengchao-rules-list">';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>2026年常规赛排名前6名的盟市，将获得2027年蒙超常规赛6个主场资格</span></div>';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>主教练须持有亚足联/中国足协B级或以上教练员执照</span></div>';
-  html += '<div class="mengchao-rules-item"><span class="mengchao-rules-bullet">&#8226;</span><span>球员报名确定后当年度不得变更代表队</span></div>';
-  html += '</div>';
-  html += '</div>';
-
-  html += '</div>';
-  return html;
-}
-
-function renderMengchaoStandings() {
-  var html = '';
-  html += '<div class="mengchao-standings-wrap">';
-  html += '<div class="mengchao-section-title">2026 蒙超联赛积分榜</div>';
-  html += '<div class="mengchao-update-time">更新至第6轮 · 2026-06-22</div>';
-  html += '<div class="mengchao-table-container"><table class="mengchao-table">';
-  html += '<thead><tr><th>排名</th><th>球队</th><th>场</th><th>胜</th><th>平</th><th>负</th><th>进</th><th>失</th><th>净</th><th>积分</th></tr></thead>';
-  html += '<tbody>';
-  MENGCHAO_STANDINGS.forEach(function(s) {
-    var teamInfo = MENGCHAO_TEAMS[s.team] || {};
-    var color = teamInfo.color || '#6366f1';
-    var gd = s.gf - s.ga;
-    var gdClass = gd > 0 ? 'mengchao-gd-pos' : (gd < 0 ? 'mengchao-gd-neg' : '');
-    var rankClass = '';
-    if (s.rank <= 2) rankClass = 'mengchao-rank-top';
-    else if (s.rank <= 8) rankClass = 'mengchao-rank-mid';
-    else rankClass = 'mengchao-rank-bot';
-
-    html += '<tr class="' + rankClass + '">';
-    html += '<td class="mengchao-rank">' + s.rank + '</td>';
-    html += '<td class="mengchao-team-cell"><span class="mengchao-team-dot" style="background:' + color + '"></span>' + s.team + '</td>';
-    html += '<td>' + s.played + '</td>';
-    html += '<td class="mengchao-w">' + s.won + '</td>';
-    html += '<td class="mengchao-d">' + s.drawn + '</td>';
-    html += '<td class="mengchao-l">' + s.lost + '</td>';
-    html += '<td>' + s.gf + '</td>';
-    html += '<td>' + s.ga + '</td>';
-    html += '<td class="' + gdClass + '">' + (gd > 0 ? '+' : '') + gd + '</td>';
-    html += '<td class="mengchao-pts">' + s.pts + '</td>';
-    html += '</tr>';
-  });
-  html += '</tbody></table></div>';
-  html += '<div class="mengchao-legend">';
-  html += '<span class="mengchao-legend-item"><span class="mengchao-legend-dot" style="background:#22c55e"></span>晋级区（前8）</span>';
-  html += '<span class="mengchao-legend-item"><span class="mengchao-legend-dot" style="background:#ef4444"></span>淘汰区</span>';
-  html += '</div>';
-  html += '</div>';
-  return html;
-}
-
-function renderMengchaoSchedule() {
-  var html = '';
-  var today = new Date().toISOString().slice(0, 10);
-
-  // 按轮次分组
-  var rounds = {};
-  MENGCHAO_MATCHES.forEach(function(m) {
-    if (!rounds[m.round]) rounds[m.round] = [];
-    rounds[m.round].push(m);
-  });
-
-  // 分类轮次：即将开始/进行中、已结束、未来
-  var nextRound = null;  // 最近一轮要开始的
-  var finishedRounds = [];
-  var futureRounds = [];
-
-  var roundNums = Object.keys(rounds).map(Number).sort(function(a,b) { return a - b; });
-  roundNums.forEach(function(round) {
-    var matches = rounds[round];
-    var allFinished = matches.every(function(m) { return m.finished; });
-    var allUpcoming = matches.every(function(m) { return !m.finished; });
-    if (allFinished) {
-      finishedRounds.push(round);
-    } else {
-      // 第一个未全部结束的轮次就是"最近一轮"
-      if (nextRound === null) nextRound = round;
-      else futureRounds.push(round);
-    }
-  });
-
-  html += '<div class="mengchao-schedule-wrap">';
-  html += '<div class="mengchao-section-title">蒙超联赛赛程</div>';
-
-  function renderRoundBlock(round) {
-    var matches = rounds[round];
-    var allFinished = matches.every(function(m) { return m.finished; });
-    var hasToday = matches.some(function(m) { return m.date === today; });
-
-    html += '<div class="mengchao-round' + (allFinished ? ' mengchao-round-finished' : '') + (hasToday ? ' mengchao-round-today' : '') + '">';
-    html += '<div class="mengchao-round-header">';
-    html += '<span class="mengchao-round-label">第' + round + '轮</span>';
-    if (allFinished) html += '<span class="mengchao-round-status mengchao-status-done">已结束</span>';
-    else if (hasToday) html += '<span class="mengchao-round-status mengchao-status-live">进行中</span>';
-    else html += '<span class="mengchao-round-status mengchao-status-upcoming">未开始</span>';
-    html += '</div>';
-
-    matches.forEach(function(m) {
-      var homeInfo = MENGCHAO_TEAMS[m.home] || {};
-      var awayInfo = MENGCHAO_TEAMS[m.away] || {};
-      html += '<div class="mengchao-match' + (m.finished ? ' mengchao-match-finished' : '') + '">';
-      html += '<div class="mengchao-match-date">' + m.date + ' ' + (m.time || '') + '</div>';
-      html += '<div class="mengchao-match-body">';
-      html += '<div class="mengchao-match-team">';
-      html += '<span class="mengchao-team-dot" style="background:' + (homeInfo.color || '#6366f1') + '"></span>';
-      html += '<span class="mengchao-match-team-name">' + m.home + '</span>';
-      html += '</div>';
-      if (m.finished && m.homeScore !== null) {
-        html += '<div class="mengchao-match-score"><span class="mengchao-score-num">' + m.homeScore + '</span><span class="mengchao-score-sep">:</span><span class="mengchao-score-num">' + m.awayScore + '</span></div>';
-      } else {
-        html += '<div class="mengchao-match-score mengchao-vs">VS</div>';
-      }
-      html += '<div class="mengchao-match-team mengchao-match-team-away">';
-      html += '<span class="mengchao-team-dot" style="background:' + (awayInfo.color || '#6366f1') + '"></span>';
-      html += '<span class="mengchao-match-team-name">' + m.away + '</span>';
-      html += '</div>';
-      html += '</div>';
-      html += '<div class="mengchao-match-venue">' + m.venue + '</div>';
-      html += '</div>';
-    });
-
-    html += '</div>';
-  }
-
-  // 1. 最近一轮（即将开始/进行中）放最前
-  if (nextRound !== null) renderRoundBlock(nextRound);
-
-  // 2. 已结束的倒序排列
-  finishedRounds.reverse().forEach(function(round) {
-    renderRoundBlock(round);
-  });
-
-  // 3. 之后的比赛
-  futureRounds.forEach(function(round) {
-    renderRoundBlock(round);
-  });
-
-  html += '</div>';
-  return html;
-}
-
-function renderMengchaoScorers() {
-  var html = '';
-  html += '<div class="mengchao-scorers-wrap">';
-  html += '<div class="mengchao-section-title">蒙超射手榜</div>';
-
-  MENGCHAO_SCORERS.forEach(function(s) {
-    var teamInfo = MENGCHAO_TEAMS[s.team] || {};
-    var color = teamInfo.color || '#6366f1';
-    var medalIcon = '';
-    if (s.rank === 1) medalIcon = '🥇';
-    else if (s.rank === 2) medalIcon = '🥈';
-    else if (s.rank === 3) medalIcon = '🥉';
-
-    html += '<div class="mengchao-scorer-card">';
-    html += '<div class="mengchao-scorer-rank">' + (medalIcon || s.rank) + '</div>';
-    html += '<div class="mengchao-scorer-info">';
-    html += '<div class="mengchao-scorer-name">' + s.name + '</div>';
-    html += '<div class="mengchao-scorer-team"><span class="mengchao-team-dot" style="background:' + color + '"></span>' + s.team + (s.note ? ' · ' + s.note : '') + '</div>';
-    html += '</div>';
-    html += '<div class="mengchao-scorer-goals">' + s.goals + '<span class="mengchao-scorer-unit">球</span></div>';
-    html += '<div class="mengchao-scorer-actions">' + renderFanMiniScorer('player_' + s.name) + '</div>';
-    html += '</div>';
-  });
-
-  html += '</div>';
-  return html;
-}
-
-function renderMengchaoTeamsPage() {
-  var content = $('#page-teams');
-  if (!content) return;
-
-  var html = '';
-  html += '<div class="mengchao-teams-wrap">';
-  html += '<div class="mengchao-section-title">蒙超联赛球队</div>';
-  html += '<div class="mengchao-teams-grid">';
-
-  MENGCHAO_STANDINGS.forEach(function(s) {
-    var teamInfo = MENGCHAO_TEAMS[s.team] || {};
-    var color = teamInfo.color || '#6366f1';
-    html += '<div class="mengchao-team-card" onclick="showMengchaoTeamDetail(\'' + s.team + '\')" style="border-left:4px solid ' + color + '">';
-    html += '<div class="mengchao-team-card-header">';
-    html += '<span class="mengchao-team-card-rank">#' + s.rank + '</span>';
-    html += '<span class="mengchao-team-card-name">' + s.team + '</span>';
-    html += '<span class="mengchao-team-card-pts">' + s.pts + '分</span>';
-    html += '</div>';
-    html += '<div class="mengchao-team-card-stats">';
-    html += '<span>' + s.won + '胜</span><span>' + s.drawn + '平</span><span>' + s.lost + '负</span>';
-    html += '<span>进' + s.gf + '球</span><span>失' + s.ga + '球</span>';
-    html += '</div>';
-    html += renderFanMiniBar('team_' + s.team);
-    html += '</div>';
-    if (teamInfo.desc) {
-      html += '<div class="mengchao-team-card-desc">' + teamInfo.desc + '</div>';
-    }
-    html += '</div>';
-  });
-
-  html += '</div></div>';
-  content.innerHTML = html;
-}
-
-var mengchaoPredictView = 'next'; // next | history
-
-function renderMengchaoPredictPage() {
-  var content = $('#predict-content');
-  if (!content) return;
-
-  var html = '';
-  html += '<div class="mengchao-predict-wrap">';
-
-  // 子导航：下期预测 | 往期预测
-  html += '<div class="mengchao-sub-nav">';
-  html += '<a class="mengchao-sub-btn' + (mengchaoPredictView === 'next' ? ' active' : '') + '" onclick="switchMengchaoPredictView(\'next\')">下期预测</a>';
-  html += '<a class="mengchao-sub-btn' + (mengchaoPredictView === 'history' ? ' active' : '') + '" onclick="switchMengchaoPredictView(\'history\')">往期预测</a>';
-  html += '</div>';
-
-  if (mengchaoPredictView === 'next') {
-    html += renderMengchaoNextPredict();
-  } else {
-    html += renderMengchaoHistoryPredict();
-  }
-
-  html += '</div>';
-  content.innerHTML = html;
-}
-
-function switchMengchaoPredictView(view) {
-  mengchaoPredictView = view;
-  renderMengchaoPredictPage();
-}
-
-function renderMengchaoNextPredict() {
-  var html = '';
-  // 找最近未开始的轮次
-  var nextRound = null;
-  var rounds = {};
-  MENGCHAO_MATCHES.forEach(function(m) {
-    if (!rounds[m.round]) rounds[m.round] = [];
-    rounds[m.round].push(m);
-  });
-  var roundNums = Object.keys(rounds).map(Number).sort(function(a,b) { return a - b; });
-  for (var i = 0; i < roundNums.length; i++) {
-    var allFinished = rounds[roundNums[i]].every(function(m) { return m.finished; });
-    if (!allFinished) { nextRound = roundNums[i]; break; }
-  }
-
-  if (nextRound === null) {
-    html += '<div class="mengchao-section-title">本赛季常规赛已全部结束</div>';
-    return html;
-  }
-
-  var matches = rounds[nextRound];
-  html += '<div class="mengchao-section-title">第' + nextRound + '轮 预测</div>';
-
-  matches.forEach(function(m) {
-    var homeInfo = MENGCHAO_TEAMS[m.home] || {};
-    var awayInfo = MENGCHAO_TEAMS[m.away] || {};
-    var homeStanding = MENGCHAO_STANDINGS.find(function(s) { return s.team === m.home; });
-    var awayStanding = MENGCHAO_STANDINGS.find(function(s) { return s.team === m.away; });
-
-    // 基于历史数据的预测：业余联赛场均约1.5球/队
-    // 用实际场均进球作为基础，结合排名差异微调
-    var homeGPG = homeStanding ? (homeStanding.gf / Math.max(homeStanding.played, 1)) : 1.2;
-    var awayGPG = awayStanding ? (awayStanding.gf / Math.max(awayStanding.played, 1)) : 1.2;
-    var homeGAPG = homeStanding ? (homeStanding.ga / Math.max(homeStanding.played, 1)) : 1.2;
-    var awayGAPG = awayStanding ? (awayStanding.ga / Math.max(awayStanding.played, 1)) : 1.2;
-    // 主队预测进球 = 主队攻击力与客队防守力的平均，加主场优势0.3
-    var homeExp = (homeGPG + awayGAPG) / 2 + 0.3;
-    // 客队预测进球 = 客队攻击力与主队防守力的平均
-    var awayExp = (awayGPG + homeGAPG) / 2;
-    // 排名差距微调（差距越大优势越大，但幅度小）
-    var homeRank = homeStanding ? homeStanding.rank : 7;
-    var awayRank = awayStanding ? awayStanding.rank : 7;
-    var rankDiff = awayRank - homeRank;
-    homeExp += rankDiff * 0.05;
-    awayExp -= rankDiff * 0.05;
-    // 蒙超整体进球率偏低，限制最大期望值
-    homeExp = Math.min(homeExp, 2.8);
-    awayExp = Math.min(awayExp, 2.5);
-    // 用确定性方式取整：四舍五入到最近的0.5再取整，保证结果稳定
-    var homeScore = Math.round(homeExp);
-    var awayScore = Math.round(awayExp);
-    // 避免出现0:0预测太无聊，如果双方期望都很低，给实力强的一方加1
-    if (homeScore === 0 && awayScore === 0) {
-      if (homeExp >= awayExp) homeScore = 1; else awayScore = 1;
-    }
-    // 总进球不超过4
-    if (homeScore + awayScore > 4) {
-      if (homeScore >= awayScore) homeScore = Math.max(homeScore - 1, 1);
-      else awayScore = Math.max(awayScore - 1, 1);
-    }
-    var wdl = homeScore > awayScore ? '主胜' : (homeScore < awayScore ? '客胜' : '平');
-    var totalGoals = homeScore + awayScore;
-    var goalsLabel = totalGoals <= 2 ? '小2.5球' : '大2.5球';
-
-    html += '<div class="mengchao-predict-card">';
-    html += '<div class="mengchao-predict-header">';
-    html += '<div class="mengchao-predict-team">';
-    html += '<span class="mengchao-team-dot" style="background:' + (homeInfo.color || '#6366f1') + '"></span>';
-    html += '<span class="mengchao-predict-team-name">' + m.home + '</span>';
-    html += '<span class="mengchao-predict-rank">#' + homeRank + '</span>';
-    html += '</div>';
-    html += '<div class="mengchao-predict-vs">VS</div>';
-    html += '<div class="mengchao-predict-team mengchao-predict-team-away">';
-    html += '<span class="mengchao-predict-rank">#' + awayRank + '</span>';
-    html += '<span class="mengchao-predict-team-name">' + m.away + '</span>';
-    html += '<span class="mengchao-team-dot" style="background:' + (awayInfo.color || '#6366f1') + '"></span>';
-    html += '</div>';
-    html += '</div>';
-    html += '<div class="mengchao-predict-info">' + m.date + ' ' + (m.time || '') + ' · ' + m.venue + '</div>';
-    html += '<div class="mengchao-predict-result">';
-    html += '<span class="mengchao-predict-wdl wdl-' + (wdl === '主胜' ? 'home' : wdl === '客胜' ? 'away' : 'draw') + '">' + wdl + '</span>';
-    html += '<span class="mengchao-predict-score">' + homeScore + ':' + awayScore + '</span>';
-    html += '<span class="mengchao-predict-goals">' + goalsLabel + '</span>';
-    html += '</div>';
-    html += '</div>';
-  });
-
-  // 晋级形势分析
-  html += '<div class="mengchao-section-title" style="margin-top:20px">晋级形势分析</div>';
-  html += '<div class="mengchao-qualify-section">';
-  html += '<div class="mengchao-qualify-row mengchao-qualify-header"><span>排名</span><span>球队</span><span>积分</span><span>剩余</span><span>形势</span></div>';
-  MENGCHAO_STANDINGS.forEach(function(s) {
-    var remaining = s.played >= 11 ? 0 : (11 - s.played);
-    var situation = '';
-    var sitClass = '';
-    if (s.rank <= 4) { situation = '晋级无忧'; sitClass = 'mengchao-sit-safe'; }
-    else if (s.rank <= 8) { situation = '有望晋级'; sitClass = 'mengchao-sit-likely'; }
-    else { situation = '形势严峻'; sitClass = 'mengchao-sit-danger'; }
-    html += '<div class="mengchao-qualify-row">';
-    html += '<span>' + s.rank + '</span>';
-    html += '<span>' + s.team + '</span>';
-    html += '<span>' + s.pts + '</span>';
-    html += '<span>' + remaining + '场</span>';
-    html += '<span class="' + sitClass + '">' + situation + '</span>';
-    html += '</div>';
-  });
-  html += '</div>';
-
-  // 业余联赛预测免责提示
-  html += '<div class="mengchao-predict-disclaimer">';
-  html += '<div class="mengchao-disclaimer-icon">ℹ️</div>';
-  html += '<div class="mengchao-disclaimer-text">蒙超联赛为业余赛事，球员状态波动较大，比赛结果难以准确预估。以上预测仅基于历史数据与积分排名，仅供参考娱乐，不构成任何建议。</div>';
-  html += '</div>';
-
-  return html;
-}
-
-function renderMengchaoHistoryPredict() {
-  var html = '';
-
-  // 找所有已结束的比赛，倒序排列（最近在前）
-  var finishedMatches = MENGCHAO_MATCHES.filter(function(m) { return m.finished; }).reverse();
-
-  if (finishedMatches.length === 0) {
-    html += '<div style="text-align:center;padding:40px;color:var(--text-dim);">暂无已结束的比赛</div>';
-    return html;
-  }
-
-  // 按轮次分组，倒序
-  var rounds = {};
-  finishedMatches.forEach(function(m) {
-    if (!rounds[m.round]) rounds[m.round] = [];
-    rounds[m.round].push(m);
-  });
-  var roundNums = Object.keys(rounds).map(Number).sort(function(a,b) { return b - a; });
-
-  roundNums.forEach(function(round) {
-    var matches = rounds[round];
-    html += '<div class="mengchao-round mengchao-round-finished">';
-    html += '<div class="mengchao-round-header">';
-    html += '<span class="mengchao-round-label">第' + round + '轮</span>';
-    html += '<span class="mengchao-round-status mengchao-status-done">已结束</span>';
-    html += '</div>';
-
-    matches.forEach(function(m) {
-      var homeInfo = MENGCHAO_TEAMS[m.home] || {};
-      var awayInfo = MENGCHAO_TEAMS[m.away] || {};
-      html += '<div class="mengchao-match mengchao-match-finished">';
-      html += '<div class="mengchao-match-date">' + m.date + ' ' + (m.time || '') + '</div>';
-      html += '<div class="mengchao-match-body">';
-      html += '<div class="mengchao-match-team">';
-      html += '<span class="mengchao-team-dot" style="background:' + (homeInfo.color || '#6366f1') + '"></span>';
-      html += '<span class="mengchao-match-team-name">' + m.home + '</span>';
-      html += '</div>';
-      html += '<div class="mengchao-match-score"><span class="mengchao-score-num">' + m.homeScore + '</span><span class="mengchao-score-sep">:</span><span class="mengchao-score-num">' + m.awayScore + '</span></div>';
-      html += '<div class="mengchao-match-team mengchao-match-team-away">';
-      html += '<span class="mengchao-team-dot" style="background:' + (awayInfo.color || '#6366f1') + '"></span>';
-      html += '<span class="mengchao-match-team-name">' + m.away + '</span>';
-      html += '</div>';
-      html += '</div>';
-      html += '<div class="mengchao-match-venue">' + m.venue + '</div>';
-      html += '</div>';
-    });
-
-    html += '</div>';
-  });
-
-  // 数据洞察
-  html += '<div class="mengchao-section-title" style="margin-top:20px">数据洞察</div>';
-  html += '<div class="mengchao-insight-cards">';
-
-  var topTeam = MENGCHAO_STANDINGS[0];
-  var topInfo = MENGCHAO_TEAMS[topTeam.team] || {};
-  html += '<div class="mengchao-insight-card" style="border-left:4px solid ' + (topInfo.color || '#6366f1') + '">';
-  html += '<div class="mengchao-insight-icon">🏆</div>';
-  html += '<div class="mengchao-insight-title">领跑者</div>';
-  html += '<div class="mengchao-insight-team">' + topTeam.team + '</div>';
-  html += '<div class="mengchao-insight-detail">' + topTeam.pts + '分 · ' + topTeam.won + '胜' + topTeam.drawn + '平' + topTeam.lost + '负</div>';
-  html += '</div>';
-
-  var bestAttack = MENGCHAO_STANDINGS.slice().sort(function(a,b) { return b.gf - a.gf; })[0];
-  var baInfo = MENGCHAO_TEAMS[bestAttack.team] || {};
-  html += '<div class="mengchao-insight-card" style="border-left:4px solid ' + (baInfo.color || '#6366f1') + '">';
-  html += '<div class="mengchao-insight-icon">⚽</div>';
-  html += '<div class="mengchao-insight-title">最强火力</div>';
-  html += '<div class="mengchao-insight-team">' + bestAttack.team + '</div>';
-  html += '<div class="mengchao-insight-detail">' + bestAttack.gf + '球 · 场均' + (bestAttack.gf / bestAttack.played).toFixed(1) + '球</div>';
-  html += '</div>';
-
-  var bestDef = MENGCHAO_STANDINGS.slice().sort(function(a,b) { return a.ga - b.ga; })[0];
-  var bdInfo = MENGCHAO_TEAMS[bestDef.team] || {};
-  html += '<div class="mengchao-insight-card" style="border-left:4px solid ' + (bdInfo.color || '#6366f1') + '">';
-  html += '<div class="mengchao-insight-icon">🛡️</div>';
-  html += '<div class="mengchao-insight-title">最佳防线</div>';
-  html += '<div class="mengchao-insight-team">' + bestDef.team + '</div>';
-  html += '<div class="mengchao-insight-detail">仅失' + bestDef.ga + '球 · 场均失' + (bestDef.ga / bestDef.played).toFixed(1) + '球</div>';
-  html += '</div>';
-
-  var topScorer = MENGCHAO_SCORERS[0];
-  var tsInfo = MENGCHAO_TEAMS[topScorer.team] || {};
-  html += '<div class="mengchao-insight-card" style="border-left:4px solid ' + (tsInfo.color || '#6366f1') + '">';
-  html += '<div class="mengchao-insight-icon">👟</div>';
-  html += '<div class="mengchao-insight-title">射手王</div>';
-  html += '<div class="mengchao-insight-team">' + topScorer.name + '</div>';
-  html += '<div class="mengchao-insight-detail">' + topScorer.team + ' · ' + topScorer.goals + '球</div>';
-  html += '</div>';
-
-  html += '</div>';
-
-  // 业余联赛预测免责提示
-  html += '<div class="mengchao-predict-disclaimer">';
-  html += '<div class="mengchao-disclaimer-icon">ℹ️</div>';
-  html += '<div class="mengchao-disclaimer-text">蒙超联赛为业余赛事，球员表现较难预估，以上数据与预测仅供观赛参考，请理性看待。</div>';
-  html += '</div>';
-
-  return html;
-}
-
-function showMengchaoTeamDetail(teamName) {
-  var teamInfo = MENGCHAO_TEAMS[teamName] || {};
-  var standing = MENGCHAO_STANDINGS.find(function(s) { return s.team === teamName; });
-  var teamMatches = MENGCHAO_MATCHES.filter(function(m) { return m.home === teamName || m.away === teamName; });
-
-  var html = '';
-  html += '<div class="mengchao-team-detail">';
-  html += '<div class="mengchao-team-detail-header" style="background:' + (teamInfo.color || '#6366f1') + '">';
-  html += '<div class="mengchao-team-detail-name">' + teamName + '</div>';
-  if (standing) {
-    html += '<div class="mengchao-team-detail-pts">' + standing.pts + '分 · 第' + standing.rank + '名</div>';
-  }
-  html += '</div>';
-
-  if (standing) {
-    html += '<div class="mengchao-team-detail-stats">';
-    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val">' + standing.played + '</div><div class="mengchao-detail-stat-label">已赛</div></div>';
-    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val mengchao-w">' + standing.won + '</div><div class="mengchao-detail-stat-label">胜</div></div>';
-    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val mengchao-d">' + standing.drawn + '</div><div class="mengchao-detail-stat-label">平</div></div>';
-    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val mengchao-l">' + standing.lost + '</div><div class="mengchao-detail-stat-label">负</div></div>';
-    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val">' + standing.gf + '</div><div class="mengchao-detail-stat-label">进球</div></div>';
-    html += '<div class="mengchao-detail-stat"><div class="mengchao-detail-stat-val">' + standing.ga + '</div><div class="mengchao-detail-stat-label">失球</div></div>';
-    html += '</div>';
-  }
-
-  html += renderFanActionBar('team_' + teamName);
-
-  if (teamInfo.venue) {
-    html += '<div class="mengchao-team-detail-info"><span class="mengchao-detail-label">主场</span><span>' + teamInfo.venue + '</span></div>';
-  }
-  if (teamInfo.desc) {
-    html += '<div class="mengchao-team-detail-info"><span class="mengchao-detail-label">简介</span><span>' + teamInfo.desc + '</span></div>';
-  }
-
-  // 近期赛程
-  html += '<div class="mengchao-team-detail-matches">';
-  html += '<div class="mengchao-detail-section-title">赛程</div>';
-  teamMatches.forEach(function(m) {
-    var isHome = m.home === teamName;
-    html += '<div class="mengchao-team-match' + (m.finished ? ' mengchao-match-finished' : '') + '">';
-    html += '<span class="mengchao-tm-round">第' + m.round + '轮</span>';
-    html += '<span class="mengchao-tm-date">' + m.date + '</span>';
-    html += '<span class="mengchao-tm-vs">' + m.home + (m.finished && m.homeScore !== null ? ' ' + m.homeScore + ':' + m.awayScore + ' ' : ' vs ') + m.away + '</span>';
-    html += '<span class="mengchao-tm-tag">' + (isHome ? '主' : '客') + '</span>';
-    html += '</div>';
-  });
-  html += '</div>';
-
-  html += '</div>';
-
-  var modal = $('#team-modal');
-  var detail = $('#team-detail');
-  if (modal && detail) {
-    detail.innerHTML = html;
-    modal.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-}
-
-// ========== 送花/扔鸡蛋互动引擎 ==========
-var FAN_STORE_KEY = 'wc_fan_actions';
-var FAN_SEEDED_KEY = 'wc_fan_seeded_v2';
-
-function getFanData() {
-  try {
-    var d = localStorage.getItem(FAN_STORE_KEY);
-    return d ? JSON.parse(d) : {};
-  } catch(e) { return {}; }
-}
-
-function saveFanData(data) {
-  try { localStorage.setItem(FAN_STORE_KEY, JSON.stringify(data)); } catch(e) {}
-}
-
-// 为所有球队/球员生成随机种子数据（首次访问时）
-function seedFanData() {
-  if (localStorage.getItem(FAN_SEEDED_KEY)) return;
-  var data = getFanData();
-  // 世界杯球队
-  if (typeof MATCHES !== 'undefined') {
-    var teams = {};
-    MATCHES.forEach(function(m) {
-      teams[m.home] = 1; teams[m.away] = 1;
-    });
-    Object.keys(teams).forEach(function(t) {
-      var key = 'team_' + t;
-      if (!data[key]) {
-        data[key] = { flowers: Math.floor(Math.random() * 80) + 10, eggs: Math.floor(Math.random() * 25) };
-      }
-    });
-  }
-  // 蒙超球队
-  if (typeof MENGCHAO_STANDINGS !== 'undefined') {
-    MENGCHAO_STANDINGS.forEach(function(s) {
-      var key = 'team_' + s.team;
-      if (!data[key]) {
-        data[key] = { flowers: Math.floor(Math.random() * 30) + 5, eggs: Math.floor(Math.random() * 12) };
-      }
-    });
-  }
-  // 蒙超射手
-  if (typeof MENGCHAO_SCORERS !== 'undefined') {
-    MENGCHAO_SCORERS.forEach(function(s) {
-      var key = 'player_' + s.name;
-      if (!data[key]) {
-        data[key] = { flowers: Math.floor(Math.random() * 20) + 3, eggs: Math.floor(Math.random() * 8) };
-      }
-    });
-  }
-  // 世界杯球员（射手+助攻）
-  if (typeof TOP_SCORERS !== 'undefined') {
-    TOP_SCORERS.forEach(function(p) {
-      var key = 'player_' + p.name;
-      if (!data[key]) {
-        data[key] = { flowers: Math.floor(Math.random() * 50) + 5, eggs: Math.floor(Math.random() * 15) };
-      }
-    });
-  }
-  if (typeof TOP_ASSISTS !== 'undefined') {
-    TOP_ASSISTS.forEach(function(p) {
-      var key = 'player_' + p.name;
-      if (!data[key]) {
-        data[key] = { flowers: Math.floor(Math.random() * 40) + 3, eggs: Math.floor(Math.random() * 12) };
-      }
-    });
-  }
-  // 六大联赛球队
-  if (typeof LEAGUE_DATA !== 'undefined') {
-    Object.keys(LEAGUE_DATA).forEach(function(lk) {
-      var standings = LEAGUE_DATA[lk] && LEAGUE_DATA[lk].standings;
-      if (standings && standings.length) {
-        standings.forEach(function(s) {
-          var key = 'team_' + s.team;
-          if (!data[key]) {
-            data[key] = { flowers: Math.floor(Math.random() * 60) + 10, eggs: Math.floor(Math.random() * 20) };
-          }
-        });
-      }
-    });
-  }
-  saveFanData(data);
-  localStorage.setItem(FAN_SEEDED_KEY, '1');
-}
-
-function getFanCounts(key) {
-  var data = getFanData();
-  return data[key] || { flowers: 0, eggs: 0 };
-}
-
-function doFanAction(key, type, btnEl) {
-  var data = getFanData();
-  if (!data[key]) data[key] = { flowers: 0, eggs: 0 };
-  data[key][type] = (data[key][type] || 0) + 1;
-  saveFanData(data);
-
-  // 更新所有同key的计数显示
-  document.querySelectorAll('[data-fan-key="' + key + '"] .fan-count-' + type).forEach(function(el) {
-    el.textContent = data[key][type];
-  });
-  document.querySelectorAll('[data-fan-key="' + key + '"] .mini-count-' + type).forEach(function(el) {
-    el.textContent = data[key][type];
-  });
-
-  // 飘落动画
-  spawnParticles(btnEl, type);
-}
-
-// 飘落粒子效果
-function spawnParticles(btnEl, type) {
-  if (!btnEl) return;
-  var rect = btnEl.getBoundingClientRect();
-  var cx = rect.left + rect.width / 2;
-  var cy = rect.top + rect.height / 2;
-  var emojis = type === 'flowers' ? ['🌸', '🌺', '💮', '🏵️'] : ['🥚', '💥', '🍳'];
-  for (var i = 0; i < 5; i++) {
-    var p = document.createElement('span');
-    p.className = 'fan-particle' + (type === 'eggs' ? ' egg-particle' : '');
-    p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
-    p.style.left = (cx + (Math.random() - 0.5) * 40) + 'px';
-    p.style.top = (cy - 10) + 'px';
-    document.body.appendChild(p);
-    setTimeout(function(el) { el.remove(); }, 1100, p);
-  }
-}
-
-// 生成详情弹窗中的互动条HTML
-function renderFanActionBar(key) {
-  var counts = getFanCounts(key);
-  return '<div class="fan-action-bar" data-fan-key="' + key + '">' +
-    '<button class="fan-btn flower-btn" onclick="doFanAction(\'' + key + '\',\'flowers\',this)">' +
-    '<span class="fan-icon">🌸</span><span>送花</span><span class="fan-count fan-count-flowers">' + counts.flowers + '</span></button>' +
-    '<button class="fan-btn egg-btn" onclick="doFanAction(\'' + key + '\',\'eggs\',this)">' +
-    '<span class="fan-icon">🥚</span><span>扔蛋</span><span class="fan-count fan-count-eggs">' + counts.eggs + '</span></button>' +
-    '</div>';
-}
-
-// 生成卡片列表中的迷你互动条HTML
-function renderFanMiniBar(key) {
-  var counts = getFanCounts(key);
-  return '<div class="fan-mini-bar" data-fan-key="' + key + '">' +
-    '<span class="fan-mini-btn flower-mini" onclick="event.stopPropagation();doFanAction(\'' + key + '\',\'flowers\',this)">' +
-    '<span class="mini-icon">🌸</span><span class="mini-count mini-count-flowers">' + counts.flowers + '</span></span>' +
-    '<span class="fan-mini-btn egg-mini" onclick="event.stopPropagation();doFanAction(\'' + key + '\',\'eggs\',this)">' +
-    '<span class="mini-icon">🥚</span><span class="mini-count mini-count-eggs">' + counts.eggs + '</span></span>' +
-    '</div>';
-}
-
-// 射手榜行内极简互动（更紧凑）
-function renderFanMiniScorer(key) {
-  var counts = getFanCounts(key);
-  return '<span class="fan-mini-btn flower-mini" onclick="event.stopPropagation();doFanAction(\'' + key + '\',\'flowers\',this)" style="font-size:11px;padding:1px 5px;">' +
-    '🌸<span class="mini-count mini-count-flowers" style="font-size:11px;">' + counts.flowers + '</span></span>' +
-    '<span class="fan-mini-btn egg-mini" onclick="event.stopPropagation();doFanAction(\'' + key + '\',\'eggs\',this)" style="font-size:11px;padding:1px 5px;">' +
-    '🥚<span class="mini-count mini-count-eggs" style="font-size:11px;">' + counts.eggs + '</span></span>';
-}
-
-// 初始化种子数据
-seedFanData();
-
-// ========== 赛程导航栏：侧边浮动按钮 ==========
-(function() {
-  var FLOAT_THRESHOLD = 200; // 滚动超过200px后弹出侧边按钮
-  var floatNav = null;
-
-  function createFloatNav() {
-    if (floatNav) return floatNav;
-    floatNav = document.createElement('div');
-    floatNav.className = 'schedule-float-nav';
-    floatNav.innerHTML =
-      '<a class="schedule-float-btn float-today" onclick="document.getElementById(\'section-today\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">今</a>' +
-      '<a class="schedule-float-btn float-tomorrow" onclick="document.getElementById(\'section-tomorrow\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">明</a>' +
-      '<a class="schedule-float-btn float-upcoming" onclick="document.getElementById(\'section-upcoming\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">未</a>' +
-      '<a class="schedule-float-btn float-finished" onclick="document.getElementById(\'section-finished\').scrollIntoView({behavior:\'smooth\',block:\'start\'})">完</a>';
-    document.body.appendChild(floatNav);
-    return floatNav;
-  }
-
-  function updateFloatNav() {
-    var scrollY = window.scrollY || window.pageYOffset;
-    // 只在赛事数据tab且存在schedule-nav时才显示
-    var hasNav = document.querySelector('.schedule-nav');
-    if (!hasNav) {
-      if (floatNav) floatNav.classList.remove('visible');
-      return;
-    }
-    var nav = createFloatNav();
-    if (scrollY > FLOAT_THRESHOLD) {
-      nav.classList.add('visible');
-    } else {
-      nav.classList.remove('visible');
-    }
-  }
-
-  window.addEventListener('scroll', updateFloatNav, { passive: true });
-  // 初始检查
-  setTimeout(updateFloatNav, 500);
-})();
