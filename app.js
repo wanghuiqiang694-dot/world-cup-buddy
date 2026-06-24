@@ -114,12 +114,17 @@ $$('.tab').forEach(tab => {
         if (typeof verifyAllPredictions === 'function') verifyAllPredictions();
         if (typeof renderPredictPage === 'function') renderPredictPage();
       }
-      // 如果当前不是世界杯联赛，在新 tab 页面上也渲染对应联赛内容
+      // 如果当前不是世界杯/蒙超联赛，在新 tab 页面上渲染对应联赛内容或覆盖层
       if (currentLeague !== 'worldcup' && currentLeague !== 'mengchao') {
-        var config = LEAGUE_CONFIG[currentLeague];
-        if (tab.dataset.tab === 'event' && typeof renderLeagueEventPage === 'function') renderLeagueEventPage(currentLeague);
-        if (tab.dataset.tab === 'teams' && typeof renderLeagueTeamsPage === 'function') renderLeagueTeamsPage(currentLeague);
-        if (tab.dataset.tab === 'predict' && typeof renderLeaguePredictPage === 'function') renderLeaguePredictPage(currentLeague);
+        var hasData = (typeof LEAGUE_DATA !== 'undefined' && LEAGUE_DATA[currentLeague] && LEAGUE_DATA[currentLeague].standings && LEAGUE_DATA[currentLeague].standings.length > 0);
+        if (hasData) {
+          if (tab.dataset.tab === 'event' && typeof renderLeagueEventPage === 'function') renderLeagueEventPage(currentLeague);
+          if (tab.dataset.tab === 'teams' && typeof renderLeagueTeamsPage === 'function') renderLeagueTeamsPage(currentLeague);
+          if (tab.dataset.tab === 'predict' && typeof renderLeaguePredictPage === 'function') renderLeaguePredictPage(currentLeague);
+        } else {
+          var config = LEAGUE_CONFIG[currentLeague];
+          showLeagueComingSoon(currentLeague, config);
+        }
       }
     }
   });
@@ -186,10 +191,19 @@ function switchLeague(league) {
     removeLeagueComingSoon(true);
     renderMengchaoPage();
   } else {
-    // 其他联赛 - 使用通用联赛渲染
-    updateHeaderForLeague(config);
-    removeLeagueComingSoon(true);
-    if (typeof renderLeaguePage === 'function') renderLeaguePage(league);
+    // 其他联赛 - 检查是否有新赛季数据
+    var hasData = (typeof LEAGUE_DATA !== 'undefined' && LEAGUE_DATA[league] && LEAGUE_DATA[league].standings && LEAGUE_DATA[league].standings.length > 0);
+    if (hasData) {
+      // 有数据：正常渲染联赛页面
+      updateHeaderForLeague(config);
+      removeLeagueComingSoon(true);
+      if (typeof renderLeaguePage === 'function') renderLeaguePage(league);
+    } else {
+      // 无数据：显示即将开放覆盖层
+      updateHeaderForLeague(config);
+      removeLeagueComingSoon(true);
+      showLeagueComingSoon(league, config);
+    }
   }
   closeSidebar();
 }
@@ -586,15 +600,14 @@ function getMatchStatus(m) {
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.getFullYear() + '-' + String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + String(tomorrow.getDate()).padStart(2, '0');
+  if (m.date === todayStr) {
+    // 当日比赛一律归入「今日」，不管是否完赛
+    return 'today';
+  }
   const result = MATCH_RESULTS[m.id];
   if (result && result.score) {
-    if (result.live) return 'today';
+    if (result.live) return 'today'; // 进行中的也归今日
     return 'finished';
-  }
-  if (m.date === todayStr) {
-    const hoursSince = (now - matchDate) / (1000 * 60 * 60);
-    if (hoursSince > 3 && !(result && result.score)) return 'finished';
-    return 'today';
   }
   if (m.date === tomorrowStr) return 'tomorrow';
   if (matchDate < now) return 'finished';
