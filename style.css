@@ -578,15 +578,30 @@ body {
   border-radius: var(--radius);
   padding: 14px 16px;
   margin-bottom: 10px;
-  transition: border-color 0.25s, opacity 0.25s;
+  transition: border-color 0.25s, opacity 0.25s, transform 0.3s ease;
+  animation: cardFadeIn 0.4s ease both;
 }
 .match-card:hover { border-color: var(--accent); }
 .match-today {
   border-color: var(--accent);
   background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.06), var(--card-bg));
   box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.1);
+  position: relative;
 }
-.match-finished { opacity: 0.85; }
+/* 实时比赛呼吸灯 - 绿色脉冲圆点 */
+.match-today.is-live::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  animation: liveBreathe 1.8s ease-in-out infinite;
+}
+.match-finished { opacity: 0.85; animation: cardFadeIn 0.4s ease both; }
 .match-finished:hover { opacity: 1; }
 
 .match-vs-result { gap: 10px; }
@@ -1999,4 +2014,274 @@ body.light-mode .mengchao-team-card { box-shadow:0 1px 4px rgba(0,0,0,0.06); }
   gap: 6px;
   margin-left: auto;
   flex-shrink: 0;
+}
+
+/* ============================================ */
+/* 新功能：比赛卡片动效 */
+/* ============================================ */
+
+/* 卡片淡入动画 */
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 实时比赛绿色呼吸灯 */
+@keyframes liveBreathe {
+  0%, 100% { opacity: 1; box-shadow: 0 0 6px #22c55e; transform: scale(1); }
+  50% { opacity: 0.4; box-shadow: 0 0 2px #22c55e; transform: scale(0.85); }
+}
+
+/* 卡片依次出现延迟 */
+.match-card:nth-child(1) { animation-delay: 0s; }
+.match-card:nth-child(2) { animation-delay: 0.04s; }
+.match-card:nth-child(3) { animation-delay: 0.08s; }
+.match-card:nth-child(4) { animation-delay: 0.12s; }
+.match-card:nth-child(5) { animation-delay: 0.16s; }
+.match-card:nth-child(6) { animation-delay: 0.20s; }
+.match-card:nth-child(7) { animation-delay: 0.24s; }
+.match-card:nth-child(8) { animation-delay: 0.28s; }
+.match-card:nth-child(n+9) { animation-delay: 0.32s; }
+
+/* 比分变化闪烁高亮 */
+@keyframes scoreFlash {
+  0% { background: rgba(34, 197, 94, 0.3); transform: scale(1.08); }
+  100% { background: rgba(var(--accent-rgb), 0.12); transform: scale(1); }
+}
+.score-updated {
+  animation: scoreFlash 0.8s ease !important;
+}
+
+/* ============================================ */
+/* 新功能：联赛切换过渡 */
+/* ============================================ */
+
+/* 页面内容淡入 */
+@keyframes pageFadeSlide {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.page-transitioning {
+  animation: pageFadeSlide 0.35s ease both;
+}
+
+/* ============================================ */
+/* 新功能：积分榜彩色条 */
+/* ============================================ */
+
+/* 世界杯积分排名彩色条 */
+.standings-row-zone {
+  position: relative;
+}
+.standings-row-zone::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  border-radius: 2px;
+}
+.zone-top::before { background: #22c55e; }
+.zone-mid::before { background: #f59e0b; }
+.zone-out::before { background: #64748b; }
+
+/* 蒙超积分榜彩色条 - 在现有 rank class 上增强 */
+.mengchao-table tr.mengchao-rank-top { position: relative; }
+.mengchao-table tr.mengchao-rank-top td:first-child { position: relative; }
+.mengchao-table tr.mengchao-rank-top td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: #22c55e;
+}
+.mengchao-table tr.mengchao-rank-mid td:first-child { position: relative; }
+.mengchao-table tr.mengchao-rank-mid td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: #f59e0b;
+}
+.mengchao-table tr.mengchao-rank-bot td:first-child { position: relative; }
+.mengchao-table tr.mengchao-rank-bot td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: #64748b;
+}
+
+/* 欧洲联赛积分榜彩色条 */
+.mengchao-table tr.league-zone-top td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 4px; bottom: 4px;
+  width: 3px; border-radius: 2px;
+  background: #22c55e;
+}
+.mengchao-table tr.league-zone-mid td:first-child { position: relative; }
+.mengchao-table tr.league-zone-mid td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 4px; bottom: 4px;
+  width: 3px; border-radius: 2px;
+  background: #f59e0b;
+}
+.mengchao-table tr.league-zone-out td:first-child { position: relative; }
+.mengchao-table tr.league-zone-out td:first-child::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 4px; bottom: 4px;
+  width: 3px; border-radius: 2px;
+  background: #64748b;
+}
+
+/* ============================================ */
+/* 新功能：比赛日志 */
+/* ============================================ */
+
+.match-log {
+  font-size: 12px;
+  color: var(--accent);
+  margin-top: 6px;
+  padding: 4px 10px;
+  background: rgba(var(--accent-rgb), 0.06);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent);
+  line-height: 1.5;
+}
+
+/* ============================================ */
+/* 新功能：比分更新通知浮层 */
+/* ============================================ */
+
+.score-update-toast {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 700;
+  z-index: 9999;
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.3);
+  animation: toastIn 0.4s ease, toastOut 0.4s ease 3.2s forwards;
+  white-space: nowrap;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-16px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes toastOut {
+  from { opacity: 1; }
+  to { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+}
+
+/* ============================================ */
+/* 新功能：赛程地图增强 */
+/* ============================================ */
+
+/* 晋级路径高亮 */
+.nba-team-advanced {
+  background: rgba(34, 197, 94, 0.1) !important;
+  border-left: 2px solid #22c55e;
+}
+.nba-team-advanced .nba-team-name {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+/* 对阵图连接线（纯 CSS 装饰） */
+.nba-bracket-container {
+  position: relative;
+}
+.bracket-connector {
+  display: none;
+}
+
+/* 赛程地图卡片增强 */
+.bracket-map-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-top: 20px;
+}
+.bracket-map-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bracket-round-block {
+  margin-bottom: 16px;
+}
+.bracket-round-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding: 4px 10px;
+  background: rgba(var(--accent-rgb), 0.06);
+  border-radius: 12px;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+.bracket-match-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.06);
+}
+.bracket-match-row:last-child { border-bottom: none; }
+.bracket-match-team {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.bracket-match-team-away { justify-content: flex-end; text-align: right; }
+.bracket-match-score {
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 28px;
+  text-align: center;
+}
+.bracket-match-vs {
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* 浅色模式新增覆盖 */
+body.light-mode .match-log {
+  background: rgba(79, 70, 229, 0.04);
+}
+body.light-mode .score-update-toast {
+  box-shadow: 0 4px 20px rgba(34, 197, 94, 0.2);
+}
+body.light-mode .bracket-map-card {
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
