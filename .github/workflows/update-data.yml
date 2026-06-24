@@ -2,9 +2,9 @@ name: Update Match Data
 
 on:
   schedule:
-    # 每天 8:00 和 20:00 北京时间运行（UTC 0:00 和 12:00）
-    - cron: '0 0,12 * * *'
-  workflow_dispatch: # 支持手动触发
+    # 比赛日每2小时更新一次（UTC时间，覆盖北京08-24点）
+    - cron: '0 0,2,4,6,8,10,12,14,16 * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
