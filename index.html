@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>2026 世界杯观赛搭子</title>
-  <link rel="stylesheet" href="style.css?v=20260623b">
+  <link rel="stylesheet" href="style.css?v=20260624a">
 </head>
-<body class="light-mode">
+<body>
 
   <!-- 左侧侧边栏遮罩 -->
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
@@ -57,8 +57,8 @@
     <div class="sidebar-section">
       <div class="sidebar-section-title">更多</div>
       <a class="sidebar-item" onclick="toggleDarkMode()">
-        <span class="sidebar-item-icon">☀️</span>
-        <span class="sidebar-item-text" id="dark-mode-text">浅色模式</span>
+        <span class="sidebar-item-icon">🌙</span>
+        <span class="sidebar-item-text" id="dark-mode-text">深色模式</span>
       </a>
     </div>
 
@@ -77,14 +77,6 @@
         <h3 style="margin-bottom:16px;color:var(--accent);">实时比分</h3>
         <div id="football-save-status" style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-dim);">比分数据自动实时更新，无需配置</div>
         <div class="hint" style="margin-top:8px;">赛程和比分每分钟自动从 TheSportsDB 拉取，无需手动配置任何 Key</div>
-      </div>
-      <div class="settings-panel" style="margin-top:16px;">
-        <h3 style="margin-bottom:16px;color:var(--accent);">AI 聊天配置</h3>
-        <label>百度千帆 API Key</label>
-        <input type="password" id="api-key" placeholder="例如 bce-v3/ALTAK...">
-        <div class="hint">在 <a href="https://console.bce.baidu.com/qianfan/" target="_blank" style="color:var(--accent)">千帆控制台</a> 左侧菜单「API Key 管理」中创建即可，新版只需一个 Key</div>
-        <button class="save-btn" id="save-settings">保存配置</button>
-        <div id="save-status" style="text-align:center;margin-top:12px;font-size:13px;color:var(--text-dim);"></div>
       </div>
     </div>
   </div>
@@ -109,7 +101,6 @@
     <div class="tab active" data-tab="event">赛事数据</div>
     <div class="tab" data-tab="teams">球队</div>
     <div class="tab" data-tab="predict">预测</div>
-    <div class="tab" data-tab="chat">AI 聊球</div>
   </div>
 
   <!-- 赛事数据页面（含子导航） -->
@@ -150,32 +141,11 @@
     </div>
   </div>
 
-  <!-- AI 聊天页面 -->
-  <div class="page" id="page-chat">
-    <div class="quick-asks">
-      <button class="quick-ask" data-q="谁会赢得本届世界杯？">谁会夺冠？</button>
-      <button class="quick-ask" data-q="分析一下C组的出线形势">C组出线分析</button>
-      <button class="quick-ask" data-q="姆巴佩和哈兰德谁更强？">姆巴佩vs哈兰德</button>
-      <button class="quick-ask" data-q="哪场比赛最值得看？">推荐必看比赛</button>
-    </div>
-    <div class="chat-container">
-      <div class="chat-messages" id="chat-messages">
-        <div class="msg bot">
-          <div class="msg-bubble">你好！我是你的世界杯观赛搭子 ⚽ 问我任何关于 2026 世界杯的问题吧！</div>
-        </div>
-      </div>
-      <div class="chat-input-bar">
-        <input type="text" id="chat-input" placeholder="聊点什么..." autocomplete="off">
-        <button id="chat-send">发送</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="data.js?v=20260623b"></script>
-  <script src="mengchao-data.js?v=20260623b"></script>
-  <script src="skins.js?v=20260623b"></script>
-  <script src="predict.js?v=20260623b"></script>
-  <script src="leagues.js?v=20260623c"></script>
-  <script src="app.js?v=20260623c"></script>
+  <script src="data.js?v=20260624a"></script>
+  <script src="mengchao-data.js?v=20260624a"></script>
+  <script src="skins.js?v=20260624a"></script>
+  <script src="predict.js?v=20260624a"></script>
+  <script src="leagues.js?v=20260624a"></script>
+  <script src="app.js?v=20260624a"></script>
 </body>
 </html>
