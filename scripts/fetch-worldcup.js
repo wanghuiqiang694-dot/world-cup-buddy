@@ -3,8 +3,9 @@
  * 从 TheSportsDB API 抓取 2026 世界杯赛程和比分数据
  * 更新 data/worldcup.json
  * 
- * TheSportsDB 免费API（League ID 4429 = FIFA World Cup）
- * 接口：eventsday.php?d=YYYY-MM-DD&l=4429
+ * 策略：使用 searchevents.php 逐场查询比分，避免 eventsday.php 的结果截断问题
+ * eventsday.php 免费版每天最多返回3条，导致大量比赛比分丢失
+ * searchevents.php 按 "HomeTeam_vs_AwayTeam" 查询，可精确获取每场比赛数据
  */
 
 const fs = require('fs');
@@ -28,40 +29,44 @@ const TEAM_EN_MAP = {
   '英格兰': 'England', '克罗地亚': 'Croatia', '加纳': 'Ghana', '巴拿马': 'Panama'
 };
 
-// 反向映射
-const EN_CN_MAP = {};
-for (const [cn, en] of Object.entries(TEAM_EN_MAP)) {
-  EN_CN_MAP[en.toLowerCase()] = cn;
-}
-
-function findChineseTeam(enName) {
-  if (!enName) return null;
-  const cn = EN_CN_MAP[enName.toLowerCase()];
-  if (cn) return cn;
-  const lower = enName.toLowerCase();
-  for (const [en, cn2] of Object.entries(EN_CN_MAP)) {
-    if (lower.includes(en.split(' ')[0])) return cn2;
-  }
-  return null;
-}
-
-async function fetchWithRetry(url, retries = 3) {
+async function fetchWithRetry(url, retries = 3, delay = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
       const resp = await fetch(url);
       if (resp.ok) return await resp.json();
       console.warn(`  请求失败 (attempt ${i + 1}): ${resp.status}`);
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, delay));
     } catch (e) {
       console.warn(`  网络错误 (attempt ${i + 1}): ${e.message}`);
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, delay));
     }
   }
   return null;
 }
 
+/**
+ * 使用 searchevents.php 查询单场比赛比分
+ * searchevents 格式: "HomeTeam_vs_AwayTeam"
+ */
+async function fetchMatchScore(homeEN, awayEN) {
+  const query = `${homeEN}_vs_${awayEN}`;
+  const url = `https://www.thesportsdb.com/api/v1/json/3/searchevents.php?e=${encodeURIComponent(query)}`;
+  const data = await fetchWithRetry(url);
+  if (!data) return null;
+  
+  const events = data.event || data.events || [];
+  if (events.length === 0) return null;
+  
+  // 找到2026世界杯的比赛（可能返回历史比赛）
+  const wcEvent = events.find(e => 
+    e.idLeague === '4429' && e.strSeason === '2026'
+  ) || events.find(e => e.idLeague === '4429') || events[0];
+  
+  return wcEvent;
+}
+
 async function main() {
-  console.log('=== 开始抓取世界杯数据 ===');
+  console.log('=== 开始抓取世界杯数据 (searchevents模式) ===');
 
   // 读取现有数据作为基础
   let existingData = { matches: [], matchResults: {} };
@@ -71,111 +76,102 @@ async function main() {
     } catch (e) {}
   }
 
-  // 构建现有比赛索引
-  const matchIndex = {};
-  existingData.matches.forEach(m => {
-    matchIndex[m.home + '_vs_' + m.away] = m;
-  });
-
-  // 抓取比赛日期范围：世界杯期间
-  const dates = [];
-  const start = new Date('2026-06-11');
-  const end = new Date('2026-07-21');
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    dates.push(d.toISOString().slice(0, 10));
-  }
-
-  console.log(`需要抓取 ${dates.length} 天的数据...`);
-
-  const allEvents = [];
-  const batchSize = 5;
-  for (let i = 0; i < dates.length; i += batchSize) {
-    const batch = dates.slice(i, i + batchSize);
-    console.log(`  抓取 ${batch[0]} ~ ${batch[batch.length - 1]}...`);
-
-    const promises = batch.map(date =>
-      fetchWithRetry(`https://www.thesportsdb.com/api/v1/json/3/eventsday.php?d=${date}&l=4429`)
-        .then(data => (data && data.events) ? data.events.map(e => ({ ...e, _queryDate: date })) : [])
-        .catch(() => [])
-    );
-    const results = await Promise.all(promises);
-    results.forEach(events => allEvents.push(...events));
-
-    // 避免 API 限流
-    if (i + batchSize < dates.length) {
-      await new Promise(r => setTimeout(r, 1500));
-    }
-  }
-
-  console.log(`共获取 ${allEvents.length} 条赛事数据`);
-
-  if (allEvents.length === 0) {
-    console.log('TheSportsDB 暂无 2026 世界杯数据，保持现有数据不变');
-    return;
-  }
-
-  // 处理赛事数据
-  const updatedMatches = [...existingData.matches];
+  const matches = existingData.matches;
   const updatedResults = { ...existingData.matchResults };
-  let matchUpdated = 0;
   let resultUpdated = 0;
+  let matchUpdated = 0;
 
-  allEvents.forEach(evt => {
-    const homeCN = findChineseTeam(evt.strHomeTeam);
-    const awayCN = findChineseTeam(evt.strAwayTeam);
-    if (!homeCN || !awayCN) return;
-
-    const key = homeCN + '_vs_' + awayCN;
-    const match = matchIndex[key];
-    if (!match) return;
-
-    // 更新比分
-    const homeScore = evt.intHomeScore;
-    const awayScore = evt.intAwayScore;
-    const status = evt.strStatus;
-
-    if (homeScore !== null && awayScore !== null && homeScore !== undefined && awayScore !== undefined) {
-      const isFinished = ['FT', 'AET', 'PEN'].includes(status);
-      const isLive = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'].includes(status);
-
-      const existing = updatedResults[match.id];
-      const newResult = {
-        score: homeScore + ':' + awayScore,
-        events: isFinished ? '比赛结束' : isLive ? '进行中' : (existing ? existing.events : ''),
-        live: isLive
-      };
-
-      if (!existing || existing.score !== newResult.score) {
-        updatedResults[match.id] = newResult;
-        resultUpdated++;
-      }
-    }
-
-    // 更新比赛时间（UTC 转北京时间）
-    if (evt.strTime) {
-      const [h, m] = evt.strTime.split(':').map(Number);
-      const bjH = (h + 8) % 24;
-      const bjDate = new Date(evt.dateEvent + 'T00:00:00Z');
-      if (h + 8 >= 24) bjDate.setDate(bjDate.getDate() + 1);
-      const dateStr = bjDate.getFullYear() + '-' +
-        String(bjDate.getMonth() + 1).padStart(2, '0') + '-' +
-        String(bjDate.getDate()).padStart(2, '0');
-      const timeStr = String(bjH).padStart(2, '0') + ':' + String(m).padStart(2, '0');
-
-      if (match.date !== dateStr || match.time !== timeStr) {
-        match.date = dateStr;
-        match.time = timeStr;
-        matchUpdated++;
-      }
-    }
+  // 只查询已经开赛或当天/近期比赛（节省API调用）
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0, 10);
+  
+  // 筛选需要查询的比赛：过去7天到未来3天
+  const queryDateStart = new Date(now);
+  queryDateStart.setDate(queryDateStart.getDate() - 7);
+  const queryDateEnd = new Date(now);
+  queryDateEnd.setDate(queryDateEnd.getDate() + 3);
+  
+  const matchesToQuery = matches.filter(m => {
+    const mDate = m.date || '2099-01-01';
+    return mDate >= queryDateStart.toISOString().slice(0, 10) && 
+           mDate <= queryDateEnd.toISOString().slice(0, 10);
   });
+  
+  console.log(`共 ${matches.length} 场比赛，需查询 ${matchesToQuery.length} 场近期比赛`);
+
+  // 批量查询，每批3个，避免API限流
+  const batchSize = 3;
+  for (let i = 0; i < matchesToQuery.length; i += batchSize) {
+    const batch = matchesToQuery.slice(i, i + batchSize);
+    console.log(`  查询第 ${i+1}-${Math.min(i+batchSize, matchesToQuery.length)} 场...`);
+    
+    const promises = batch.map(async (match) => {
+      const homeEN = TEAM_EN_MAP[match.home];
+      const awayEN = TEAM_EN_MAP[match.away];
+      if (!homeEN || !awayEN) return null;
+      
+      const evt = await fetchMatchScore(homeEN, awayEN);
+      return { match, evt };
+    });
+    
+    const results = await Promise.all(promises);
+    
+    for (const { match, evt } of results) {
+      if (!evt) continue;
+      
+      const homeScore = evt.intHomeScore;
+      const awayScore = evt.intAwayScore;
+      const status = evt.strStatus;
+      
+      if (homeScore !== null && awayScore !== null && 
+          homeScore !== undefined && awayScore !== undefined) {
+        const isFinished = ['FT', 'AET', 'PEN'].includes(status);
+        const isLive = ['1H', '2H', 'HT', 'ET', 'P', 'BT', 'LIVE'].includes(status);
+        
+        const newResult = {
+          score: homeScore + ':' + awayScore,
+          events: isFinished ? '比赛结束' : isLive ? '进行中' : (updatedResults[match.id] ? updatedResults[match.id].events : ''),
+          live: isLive
+        };
+        
+        const existing = updatedResults[match.id];
+        if (!existing || existing.score !== newResult.score) {
+          updatedResults[match.id] = newResult;
+          resultUpdated++;
+        }
+      }
+      
+      // 更新比赛时间
+      if (evt.strTime) {
+        const [h, m] = evt.strTime.split(':').map(Number);
+        const bjH = (h + 8) % 24;
+        const bjDate = new Date(evt.dateEvent + 'T00:00:00Z');
+        if (h + 8 >= 24) bjDate.setDate(bjDate.getDate() + 1);
+        const dateStr = bjDate.getFullYear() + '-' +
+          String(bjDate.getMonth() + 1).padStart(2, '0') + '-' +
+          String(bjDate.getDate()).padStart(2, '0');
+        const timeStr = String(bjH).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+        
+        if (match.date !== dateStr || match.time !== timeStr) {
+          match.date = dateStr;
+          match.time = timeStr;
+          matchUpdated++;
+        }
+      }
+    }
+    
+    // 批次间延迟，避免API限流
+    if (i + batchSize < matchesToQuery.length) {
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
 
   console.log(`更新 ${matchUpdated} 场赛程时间，${resultUpdated} 条比分`);
 
   // 写入文件
   const output = {
     lastUpdated: new Date().toISOString(),
-    matches: updatedMatches,
+    matches: matches,
     matchResults: updatedResults
   };
 
