@@ -100,7 +100,10 @@ $$('.tab').forEach(tab => {
     $$('.page').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     const target = $(`#page-${tab.dataset.tab}`);
-    if (target) target.classList.add('active');
+    if (target) {
+      target.classList.add('active');
+      animatePageTransition(target);
+    }
     if (currentLeague === 'mengchao') {
       // 蒙超：每个tab都走蒙超专属渲染
       if (tab.dataset.tab === 'event') renderMengchaoEventPage();
@@ -437,6 +440,8 @@ function renderKnockoutSchedule() {
 
   html += renderScheduleSections(todayM, tomorrowM, upcomingM, finishedM, phaseNames[currentPhase]);
   html += '<div id="bracket-section"></div>';
+  // 添加赛程地图（移动端友好版对阵图）
+  html += renderBracketMap();
   return html;
 }
 
@@ -639,6 +644,7 @@ function renderMatchCard(m) {
     const parts = score.split(':');
     const homeGoals = parseInt(parts[0]) || 0, awayGoals = parseInt(parts[1]) || 0;
     const homeWin = homeGoals > awayGoals, awayWin = awayGoals > homeGoals, draw = homeGoals === awayGoals;
+    const logHtml = generateMatchLog(homeTeam, awayTeam, homeGoals, awayGoals, draw);
     return '<div class="match-card match-finished">' +
       '<div class="match-meta"><span>' + m.date + ' ' + m.time + '</span><span>' + phaseLabel + ' · 已结束</span></div>' +
       '<div class="match-vs match-vs-result">' +
@@ -646,7 +652,8 @@ function renderMatchCard(m) {
         '<span class="match-score-final"><span class="score-home' + (homeWin ? ' score-won' : '') + '">' + parts[0] + '</span><span class="score-sep">:</span><span class="score-away' + (awayWin ? ' score-won' : '') + '">' + parts[1] + '</span></span>' +
         '<span class="match-team' + (awayWin ? ' team-won' : (draw ? '' : ' team-lost')) + '" onclick="openTeamDetail(\'' + awayTeam + '\')">' + awayTeam + ' ' + flagImg(awayTeam, 'team-card-flag') + '</span>' +
       '</div>' +
-      (result && result.events ? '<div class="match-events">' + result.events + '</div>' : '') +
+      (result && result.events && result.events !== '比赛结束' ? '<div class="match-events">' + result.events + '</div>' : '') +
+      (logHtml ? '<div class="match-log">' + logHtml + '</div>' : '') +
       '<div class="match-venue">' + m.venue + '</div></div>';
   }
   if (isPlaceholder) {
@@ -658,8 +665,8 @@ function renderMatchCard(m) {
   if (isToday) {
     const isLive = result && result.live;
     const score = result && result.score ? result.score : null;
-    let centerHtml = score ? '<span class="match-score-live">' + score + '</span>' : '<span class="match-live">' + (isLive ? '进行中' : '今天 ' + m.time) + '</span>';
-    return '<div class="match-card match-today">' +
+    let centerHtml = score ? '<span class="match-score-live' + (isLive ? ' score-updated' : '') + '">' + score + '</span>' : '<span class="match-live">' + (isLive ? '进行中' : '今天 ' + m.time) + '</span>';
+    return '<div class="match-card match-today' + (isLive ? ' is-live' : '') + '">' +
       '<div class="match-meta"><span>' + m.date + ' ' + m.time + '</span><span>' + phaseLabel + (isLive ? ' · 进行中' : '') + '</span></div>' +
       '<div class="match-vs"><span class="match-team" onclick="openTeamDetail(\'' + homeTeam + '\')">' + flagImg(homeTeam, 'team-card-flag') + ' ' + homeTeam + '</span>' + centerHtml + '<span class="match-team" onclick="openTeamDetail(\'' + awayTeam + '\')">' + awayTeam + ' ' + flagImg(awayTeam, 'team-card-flag') + '</span></div>' +
       '<div class="match-venue">' + m.venue + '</div></div>';
@@ -864,7 +871,7 @@ function renderTeamsPage() {
         const qs = getQualifyStatus(rank);
         const gd = s.gf - s.ga;
         const gdStr = gd > 0 ? '+' + gd : String(gd);
-        html += '<tr class="standings-row" onclick="openTeamDetail(\'' + s.team + '\')" style="cursor:pointer">';
+        html += '<tr class="standings-row standings-row-zone ' + getZoneClass(rank, 'worldcup') + '" onclick="openTeamDetail(\'' + s.team + '\')" style="cursor:pointer">';
         html += '<td class="st-rank">' + rank + '</td>';
         html += '<td class="st-team"><span class="team-flag-sm">' + flagImg(s.team, 'team-card-flag') + '</span> ' + s.team + '</td>';
         html += '<td>' + s.played + '</td><td>' + s.won + '</td><td>' + s.drawn + '</td><td>' + s.lost + '</td>';
@@ -1291,8 +1298,215 @@ async function init() {
 
 init();
 
+// ========== 比赛日志生成 ==========
+function generateMatchLog(home, away, homeGoals, awayGoals, draw) {
+  if (draw) return home + ' ' + homeGoals + ':' + awayGoals + ' 战平' + away;
+  var winner = homeGoals > awayGoals ? home : away;
+  var loser = homeGoals > awayGoals ? away : home;
+  var diff = Math.abs(homeGoals - awayGoals);
+  if (diff >= 4) return winner + ' ' + Math.max(homeGoals, awayGoals) + ':' + Math.min(homeGoals, awayGoals) + ' 大胜' + loser;
+  if (diff === 3) return winner + ' 完胜' + loser + '，净胜三球';
+  if (diff === 2) return winner + ' 力克' + loser + '，两球优势取胜';
+  return winner + ' 小胜' + loser + '，一球险胜';
+}
+
+// ========== 页面过渡动画 ==========
+function animatePageTransition(container) {
+  if (!container) return;
+  container.classList.remove('page-transitioning');
+  // 强制 reflow
+  void container.offsetWidth;
+  container.classList.add('page-transitioning');
+  setTimeout(function() { container.classList.remove('page-transitioning'); }, 400);
+}
+
+// ========== 联赛切换过渡 ==========
+var _origSwitchLeague = switchLeague;
+switchLeague = function(league) {
+  var content = $('#event-content');
+  if (content) animatePageTransition(content);
+  _origSwitchLeague(league);
+};
+
+// ========== 比分变化检测与通知 ==========
+var _prevMatchResults = {};
+
+function detectScoreChanges() {
+  var changes = [];
+  for (var id in MATCH_RESULTS) {
+    var cur = MATCH_RESULTS[id];
+    var prev = _prevMatchResults[id];
+    if (cur && cur.score) {
+      if (!prev || prev.score !== cur.score) {
+        // 找到对应的比赛信息
+        var match = MATCHES.find(function(m) { return m.id === id; });
+        if (match) {
+          var isNew = !prev || !prev.score;
+          if (!isNew) {
+            changes.push({
+              home: match.home,
+              away: match.away,
+              score: cur.score,
+              live: cur.live
+            });
+          }
+        }
+      }
+    }
+  }
+  // 保存当前状态
+  for (var id2 in MATCH_RESULTS) {
+    _prevMatchResults[id2] = Object.assign({}, MATCH_RESULTS[id2]);
+  }
+  return changes;
+}
+
+function showScoreNotification(changes) {
+  if (!changes || changes.length === 0) return;
+  changes.forEach(function(c) {
+    var text = (c.live ? '⚽ 进球! ' : '比分更新: ') + c.home + ' ' + c.score + ' ' + c.away;
+    var toast = document.createElement('div');
+    toast.className = 'score-update-toast';
+    toast.textContent = text;
+    document.body.appendChild(toast);
+    // 播放声音提醒
+    playScoreSound();
+    setTimeout(function() { if (toast.parentNode) toast.remove(); }, 4000);
+  });
+}
+
+function playScoreSound() {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    osc.type = 'sine';
+    gain.gain.value = 0.15;
+    osc.start();
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch (e) {}
+}
+
+// ========== 积分榜彩色条辅助函数 ==========
+function getZoneClass(rank, league) {
+  if (league === 'worldcup') {
+    // 世界杯小组：1-2 出线(绿), 3 待定(橙), 4 淘汰(灰)
+    if (rank <= 2) return 'zone-top';
+    if (rank === 3) return 'zone-mid';
+    return 'zone-out';
+  }
+  if (league === 'mengchao') {
+    // 蒙超：1-8 晋级(绿), 9+ 淘汰(灰)
+    if (rank <= 8) return 'mengchao-rank-top';
+    return 'mengchao-rank-bot';
+  }
+  // 欧洲联赛：1-4 欧冠(绿), 5-6 欧联(橙), 其余(灰)
+  if (league === 'champions') {
+    if (rank <= 8) return 'league-zone-top';
+    return 'league-zone-out';
+  }
+  if (rank <= 4) return 'league-zone-top';
+  if (rank <= 6) return 'league-zone-mid';
+  return 'league-zone-out';
+}
+
+// ========== 赛程地图（移动端友好版对阵图） ==========
+function renderBracketMap() {
+  var standings = getGroupStandingsRanked();
+  var koResults = getKnockoutResults();
+  var html = '';
+  html += '<div class="bracket-map-card">';
+  html += '<div class="bracket-map-title">🏆 淘汰赛晋级地图</div>';
+
+  var roundLabels = {
+    r32: '1/16决赛（32强）',
+    r16: '1/8决赛（16强）',
+    qf: '1/4决赛（8强）',
+    sf: '半决赛',
+    '3rd': '季军赛',
+    final: '决赛'
+  };
+
+  var phases = ['r32', 'r16', 'qf', 'sf'];
+  phases.forEach(function(phase) {
+    var games = getKnockoutGames(phase);
+    if (!games || games.length === 0) return;
+    html += '<div class="bracket-round-block">';
+    html += '<div class="bracket-round-label">' + roundLabels[phase] + '</div>';
+    games.forEach(function(g) {
+      var t1 = g.home || resolveTeamFromPos(g.pos1, standings, koResults) || resolvePosLabel(g.pos1);
+      var t2 = g.away || resolveTeamFromPos(g.pos2, standings, koResults) || resolvePosLabel(g.pos2);
+      var result = koResults[g.id];
+      var s1 = '', s2 = '';
+      var t1adv = false, t2adv = false;
+      if (result && result.score) {
+        var parts = result.score.split(':');
+        s1 = parts[0] || ''; s2 = parts[1] || '';
+        var h = parseInt(parts[0]) || 0, a = parseInt(parts[1]) || 0;
+        if (h > a) t1adv = true;
+        else if (a > h) t2adv = true;
+      }
+      html += '<div class="bracket-match-row">';
+      html += '<div class="bracket-match-team' + (t1adv ? ' nba-team-advanced' : '') + '">';
+      html += (t1 && countryCode(t1) ? flagImg(t1, 'nba-flag-img') : '') + ' <span>' + t1 + '</span></div>';
+      if (s1 || s2) {
+        html += '<span class="bracket-match-score">' + s1 + ':' + s2 + '</span>';
+      } else {
+        html += '<span class="bracket-match-vs">VS</span>';
+      }
+      html += '<div class="bracket-match-team bracket-match-team-away' + (t2adv ? ' nba-team-advanced' : '') + '">';
+      html += '<span>' + t2 + '</span> ' + (t2 && countryCode(t2) ? flagImg(t2, 'nba-flag-img') : '') + '</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+
+  // 季军赛 + 决赛
+  var finalGames = KNOCKOUT_BRACKET.final;
+  if (finalGames) {
+    finalGames.forEach(function(round) {
+      var label = round.round === '3rd' ? '季军赛' : '决赛';
+      html += '<div class="bracket-round-block">';
+      html += '<div class="bracket-round-label">' + label + '</div>';
+      round.games.forEach(function(g) {
+        var t1 = g.home || resolveTeamFromPos(g.pos1, standings, koResults) || resolvePosLabel(g.pos1);
+        var t2 = g.away || resolveTeamFromPos(g.pos2, standings, koResults) || resolvePosLabel(g.pos2);
+        var result = koResults[g.id];
+        var s1 = '', s2 = '';
+        var t1adv = false, t2adv = false;
+        if (result && result.score) {
+          var parts = result.score.split(':');
+          s1 = parts[0] || ''; s2 = parts[1] || '';
+          var h = parseInt(parts[0]) || 0, a = parseInt(parts[1]) || 0;
+          if (h > a) t1adv = true;
+          else if (a > h) t2adv = true;
+        }
+        html += '<div class="bracket-match-row">';
+        html += '<div class="bracket-match-team' + (t1adv ? ' nba-team-advanced' : '') + '">';
+        html += (t1 && countryCode(t1) ? flagImg(t1, 'nba-flag-img') : '') + ' <span>' + t1 + '</span></div>';
+        if (s1 || s2) {
+          html += '<span class="bracket-match-score">' + s1 + ':' + s2 + '</span>';
+        } else {
+          html += '<span class="bracket-match-vs">VS</span>';
+        }
+        html += '<div class="bracket-match-team bracket-match-team-away' + (t2adv ? ' nba-team-advanced' : '') + '">';
+        html += '<span>' + t2 + '</span> ' + (t2 && countryCode(t2) ? flagImg(t2, 'nba-flag-img') : '') + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+    });
+  }
+
+  html += '</div>';
+  return html;
+}
+
 // ========== 实时比分 API ==========
-const LIVE_REFRESH_INTERVAL = 60 * 1000;
+const LIVE_REFRESH_INTERVAL = 30 * 1000;
 let liveRefreshTimer = null;
 
 const TEAM_EN_MAP = {
@@ -1372,6 +1586,9 @@ async function fetchLiveScores() {
     
     localStorage.setItem('wc_match_results', JSON.stringify(MATCH_RESULTS));
     localStorage.setItem('wc_last_fetch', Date.now().toString());
+    // 检测比分变化并推送通知
+    var scoreChanges = detectScoreChanges();
+    if (scoreChanges.length > 0) showScoreNotification(scoreChanges);
     var activePage = document.querySelector('.page.active');
     if (currentLeague === 'mengchao') {
       if (activePage && activePage.id === 'page-event') renderMengchaoEventPage();
@@ -1619,6 +1836,11 @@ function renderMengchaoSchedule() {
       html += '<span class="mengchao-match-team-name">' + m.away + '</span>';
       html += '</div>';
       html += '</div>';
+      if (m.finished && m.homeScore !== null) {
+        var mDraw = m.homeScore === m.awayScore;
+        var mLog = generateMatchLog(m.home, m.away, m.homeScore, m.awayScore, mDraw);
+        if (mLog) html += '<div class="match-log">' + mLog + '</div>';
+      }
       html += '<div class="mengchao-match-venue">' + m.venue + '</div>';
       html += '</div>';
     });
@@ -1895,6 +2117,9 @@ function renderMengchaoHistoryPredict() {
       html += '<span class="mengchao-match-team-name">' + m.away + '</span>';
       html += '</div>';
       html += '</div>';
+      var mDraw2 = m.homeScore === m.awayScore;
+      var mLog2 = generateMatchLog(m.home, m.away, m.homeScore, m.awayScore, mDraw2);
+      if (mLog2) html += '<div class="match-log">' + mLog2 + '</div>';
       html += '<div class="mengchao-match-venue">' + m.venue + '</div>';
       html += '</div>';
     });
