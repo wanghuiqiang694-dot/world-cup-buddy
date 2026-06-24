@@ -23,11 +23,19 @@ function authHeaders(context) {
 
 export async function onRequestGet(context) {
   try {
+    const token = getToken(context);
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'GITHUB_TOKEN not configured', hasEnv: !!(context && context.env), hasToken: !!(context && context.env && context.env.GITHUB_TOKEN) }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+      });
+    }
     const resp = await fetch(getApiUrl(), {
       headers: authHeaders(context)
     });
     if (!resp.ok) {
-      return new Response(JSON.stringify({ error: 'GitHub API error' }), {
+      const errBody = await resp.text();
+      return new Response(JSON.stringify({ error: 'GitHub API error', status: resp.status, detail: errBody.substring(0, 200) }), {
         status: resp.status,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       });
