@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-06-24T00:45:17.996Z",
+  "lastUpdated": "2026-06-24T00:49:13.200Z",
   "matches": [
     {
       "id": 1,
@@ -904,6 +904,16 @@
       "score": "5:0",
       "events": "比赛结束",
       "live": false
+    },
+    "46": {
+      "score": "0:0",
+      "events": "比赛结束",
+      "live": false
+    },
+    "47": {
+      "score": "0:1",
+      "events": "进行中",
+      "live": true
     }
   }
 }
