@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-06-27T20:02:40.581Z",
+  "lastUpdated": "2026-06-28T10:13:05.333Z",
   "matches": [
     {
       "id": 1,
@@ -1007,6 +1007,36 @@
     },
     "66": {
       "score": "1:5",
+      "events": "比赛结束",
+      "live": false
+    },
+    "67": {
+      "score": "0:2",
+      "events": "比赛结束",
+      "live": false
+    },
+    "68": {
+      "score": "2:1",
+      "events": "比赛结束",
+      "live": false
+    },
+    "69": {
+      "score": "0:0",
+      "events": "比赛结束",
+      "live": false
+    },
+    "70": {
+      "score": "3:1",
+      "events": "比赛结束",
+      "live": false
+    },
+    "71": {
+      "score": "3:3",
+      "events": "比赛结束",
+      "live": false
+    },
+    "72": {
+      "score": "1:3",
       "events": "比赛结束",
       "live": false
     }
