@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-06-23T14:04:37.506Z",
+  "lastUpdated": "2026-06-30T11:27:15.290Z",
   "teams": {
     "赤峰": {
       "name": "赤峰队",
@@ -111,6 +111,17 @@
       "rank": 1
     },
     {
+      "team": "包头",
+      "played": 7,
+      "won": 4,
+      "drawn": 1,
+      "lost": 2,
+      "gf": 11,
+      "ga": 6,
+      "pts": 13,
+      "rank": 2
+    },
+    {
       "team": "通辽",
       "played": 7,
       "won": 3,
@@ -119,7 +130,7 @@
       "gf": 10,
       "ga": 5,
       "pts": 13,
-      "rank": 2
+      "rank": 3
     },
     {
       "team": "鄂尔多斯",
@@ -130,7 +141,7 @@
       "gf": 12,
       "ga": 2,
       "pts": 12,
-      "rank": 3
+      "rank": 4
     },
     {
       "team": "乌兰察布",
@@ -141,7 +152,7 @@
       "gf": 11,
       "ga": 8,
       "pts": 11,
-      "rank": 4
+      "rank": 5
     },
     {
       "team": "阿拉善盟",
@@ -152,27 +163,16 @@
       "gf": 10,
       "ga": 8,
       "pts": 11,
-      "rank": 5
-    },
-    {
-      "team": "包头",
-      "played": 6,
-      "won": 3,
-      "drawn": 1,
-      "lost": 2,
-      "gf": 8,
-      "ga": 4,
-      "pts": 10,
       "rank": 6
     },
     {
       "team": "巴彦淖尔",
-      "played": 6,
+      "played": 7,
       "won": 2,
       "drawn": 1,
-      "lost": 3,
-      "gf": 6,
-      "ga": 10,
+      "lost": 4,
+      "gf": 8,
+      "ga": 13,
       "pts": 7,
       "rank": 7
     },
@@ -781,9 +781,9 @@
       "date": "2026-07-05",
       "time": "16:00",
       "venue": "包头市奥体中心足球场",
-      "homeScore": null,
-      "awayScore": null,
-      "finished": false
+      "homeScore": 3,
+      "awayScore": 2,
+      "finished": true
     },
     {
       "id": "mc47",
