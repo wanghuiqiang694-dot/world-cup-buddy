@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-06-30T11:27:15.290Z",
+  "lastUpdated": "2026-07-05T09:46:52.856Z",
   "teams": {
     "赤峰": {
       "name": "赤峰队",
@@ -167,13 +167,13 @@
     },
     {
       "team": "巴彦淖尔",
-      "played": 7,
-      "won": 2,
+      "played": 8,
+      "won": 3,
       "drawn": 1,
       "lost": 4,
-      "gf": 8,
+      "gf": 9,
       "ga": 13,
-      "pts": 7,
+      "pts": 10,
       "rank": 7
     },
     {
@@ -222,12 +222,12 @@
     },
     {
       "team": "乌海",
-      "played": 6,
+      "played": 7,
       "won": 0,
       "drawn": 2,
-      "lost": 4,
+      "lost": 5,
       "gf": 2,
-      "ga": 15,
+      "ga": 16,
       "pts": 2,
       "rank": 12
     }
@@ -877,9 +877,9 @@
       "date": "2026-07-12",
       "time": "16:00",
       "venue": "巴彦淖尔市足球主题公园",
-      "homeScore": null,
-      "awayScore": null,
-      "finished": false
+      "homeScore": 1,
+      "awayScore": 0,
+      "finished": true
     },
     {
       "id": "mc55",
