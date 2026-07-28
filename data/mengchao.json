@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-07-24T04:57:25.430Z",
+  "lastUpdated": "2026-07-28T01:18:02.366Z",
   "teams": {
     "赤峰": {
       "name": "赤峰队",
@@ -111,6 +111,17 @@
       "rank": 1
     },
     {
+      "team": "通辽",
+      "played": 8,
+      "won": 4,
+      "drawn": 4,
+      "lost": 0,
+      "gf": 12,
+      "ga": 5,
+      "pts": 16,
+      "rank": 2
+    },
+    {
       "team": "包头",
       "played": 8,
       "won": 4,
@@ -119,27 +130,16 @@
       "gf": 12,
       "ga": 7,
       "pts": 14,
-      "rank": 2
-    },
-    {
-      "team": "通辽",
-      "played": 7,
-      "won": 3,
-      "drawn": 4,
-      "lost": 0,
-      "gf": 10,
-      "ga": 5,
-      "pts": 13,
       "rank": 3
     },
     {
       "team": "鄂尔多斯",
-      "played": 6,
+      "played": 7,
       "won": 3,
       "drawn": 3,
-      "lost": 0,
+      "lost": 1,
       "gf": 12,
-      "ga": 2,
+      "ga": 4,
       "pts": 12,
       "rank": 4
     },
@@ -889,9 +889,9 @@
       "date": "2026-07-18",
       "time": "19:30",
       "venue": "通辽市奥体中心",
-      "homeScore": null,
-      "awayScore": null,
-      "finished": false
+      "homeScore": 2,
+      "awayScore": 0,
+      "finished": true
     },
     {
       "id": "mc56",
