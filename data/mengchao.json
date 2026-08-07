@@ -1,5 +1,5 @@
 {
-  "lastUpdated": "2026-07-30T01:12:43.130Z",
+  "lastUpdated": "2026-08-07T08:43:36.435Z",
   "teams": {
     "赤峰": {
       "name": "赤峰队",
@@ -133,6 +133,17 @@
       "rank": 3
     },
     {
+      "team": "阿拉善盟",
+      "played": 8,
+      "won": 4,
+      "drawn": 2,
+      "lost": 2,
+      "gf": 11,
+      "ga": 8,
+      "pts": 14,
+      "rank": 4
+    },
+    {
       "team": "鄂尔多斯",
       "played": 7,
       "won": 3,
@@ -141,7 +152,7 @@
       "gf": 12,
       "ga": 4,
       "pts": 12,
-      "rank": 4
+      "rank": 5
     },
     {
       "team": "乌兰察布",
@@ -152,17 +163,6 @@
       "gf": 12,
       "ga": 9,
       "pts": 12,
-      "rank": 5
-    },
-    {
-      "team": "阿拉善盟",
-      "played": 7,
-      "won": 3,
-      "drawn": 2,
-      "lost": 2,
-      "gf": 10,
-      "ga": 8,
-      "pts": 11,
       "rank": 6
     },
     {
@@ -200,12 +200,12 @@
     },
     {
       "team": "锡林郭勒盟",
-      "played": 6,
+      "played": 7,
       "won": 1,
       "drawn": 1,
-      "lost": 4,
+      "lost": 5,
       "gf": 8,
-      "ga": 9,
+      "ga": 10,
       "pts": 4,
       "rank": 10
     },
@@ -949,9 +949,9 @@
       "date": "2026-07-19",
       "time": "16:00",
       "venue": "阿左旗巴彦浩特多功能体育场",
-      "homeScore": null,
-      "awayScore": null,
-      "finished": false
+      "homeScore": 1,
+      "awayScore": 0,
+      "finished": true
     },
     {
       "id": "mc61",
